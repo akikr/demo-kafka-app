@@ -1,0 +1,42 @@
+services:
+  kafka:
+    image: 'confluentinc/cp-kafka:7.8.0'
+    container_name: kafka
+    ports:
+      - "9092:9092"
+    environment:
+      # Enables automatic topic creation on the broker.
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+      # KRaft settings
+      # The unique identifier for this Kafka node in the cluster.
+      KAFKA_NODE_ID: 1
+      # Defines the roles of this node. 'broker,controller' means it acts as both a broker and a KRaft controller.
+      KAFKA_PROCESS_ROLES: 'broker,controller'
+      # The list of voters in the KRaft controller quorum. For a single-node setup, it's just itself.
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka:9093'
+      # Listener settings
+      # The listener name used by the KRaft controller.
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+      # The listener name for communication between brokers.
+      KAFKA_INTER_BROKER_LISTENER_NAME: 'PLAINTEXT'
+      # Maps listener names to security protocols.
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT'
+      # The listeners advertised to clients. 'PLAINTEXT://kafka:29092' is for internal communication,
+      # and 'PLAINTEXT_HOST://localhost:9092' is for external clients on the host machine.
+      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092'
+      # The listeners that the broker will bind to. Use 0.0.0.0 to listen on all interfaces.
+      KAFKA_LISTENERS: 'PLAINTEXT://kafka:29092,CONTROLLER://kafka:9093,PLAINTEXT_HOST://0.0.0.0:9092'
+      # Cluster and topic settings
+      # A unique ID for the Kafka cluster, required for KRaft mode.
+      CLUSTER_ID: 'MkU3OEVBNTcwNTJENDM2Qk'
+      # The replication factor for the internal offsets' topic. '1' is required for a single-node setup.
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      # The replication factor for the transaction state log. '1' is required for a single-node setup.
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      # The minimum number of in-sync replicas for the transaction state log. '1' is required for a single-node setup.
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      # Development settings
+      # The delay before the first rebalance for a consumer group. '0' speeds up startup in development.
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      # Sets the root logger level for Kafka's Log4j logging to reduce noise.
+      KAFKA_LOG4J_ROOT_LOGLEVEL: 'ERROR'
