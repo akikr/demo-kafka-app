@@ -154,6 +154,6 @@ public class AppKafkaProducer {
 
 Feel free to contribute to this project!
 
-For questions or issues, please open a GitLab issue or submit a pull request.
+For questions or issues, please open a GitHub issue or submit a pull request.
 
 Happy coding! ✌️
