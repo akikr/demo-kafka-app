@@ -17,7 +17,6 @@ public class AppKafkaListener {
 
     @Value("${app.kafka.consumer.topics:app-in-topic}")
     private String[] appConsumerTopics;
-
     @Value("${spring.kafka.consumer.group-id:app-group}")
     private String appConsumerGroupId;
 

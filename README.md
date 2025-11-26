@@ -74,10 +74,24 @@ To run the tests for the application, you can use the following Maven command:
 
 ```shell
 sdk env
-./mvnw clean test
+./mvnw clean test -Dtest="DemoKafkaAppTests"
+./mvnw test
 ```
 
 This will execute all the `unit-tests` and `integration-tests` for the application using `test-containers` to spin up a Kafka broker in a docker container for testing purposes.
+
+## Build the application
+
+To build the application, you can use the following Maven command:
+
+```shell
+sdk env
+./mvnw clean package -DskipTests
+```
+
+This will create a JAR file in the `target` directory.
+
+---
 
 ## Relevant Code Examples
 
@@ -95,7 +109,6 @@ public class AppKafkaListener {
 
     @Value("${app.kafka.consumer.topics:app-in-topic}")
     private String[] appConsumerTopics;
-
     @Value("${spring.kafka.consumer.group-id:app-group}")
     private String appConsumerGroupId;
 
