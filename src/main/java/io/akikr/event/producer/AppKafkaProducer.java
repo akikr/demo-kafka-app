@@ -4,10 +4,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.kafka.support.SendResult;
 import org.springframework.stereotype.Component;
 
-import java.util.concurrent.CompletableFuture;
+import static java.util.Objects.isNull;
 
 @Component
 public class AppKafkaProducer {
@@ -25,9 +24,9 @@ public class AppKafkaProducer {
 
     public void sendMessage(String message) {
         log.info("Sending Message:[{}] to Kafka topic:[{}]", message, appProducerTopic);
-        CompletableFuture<SendResult<String, String>> sendResult = kafkaTemplate.send(appProducerTopic, message);
+        var sendResult = kafkaTemplate.send(appProducerTopic, message);
         sendResult.whenComplete((result, ex) -> {
-            if (ex == null) {
+            if (isNull(ex)) {
                 log.info("Sent message=[{}] with offset=[{}]", message, result.getRecordMetadata().offset());
             } else {
                 log.info("Unable to send message=[{}] due to : {}", message, ex.getMessage());

@@ -3,6 +3,8 @@ package io.akikr.event;
 import io.akikr.event.producer.AppKafkaProducer;
 import org.springframework.stereotype.Service;
 
+import java.util.Objects;
+
 @Service
 public class AppService {
 
@@ -13,6 +15,9 @@ public class AppService {
     }
 
     public void delegateMessage(String message) {
+        if (Objects.isNull(message) || message.isBlank()) {
+            throw new IllegalArgumentException("Message cannot be null or blank");
+        }
         appKafkaProducer.sendMessage(message);
     }
 }
