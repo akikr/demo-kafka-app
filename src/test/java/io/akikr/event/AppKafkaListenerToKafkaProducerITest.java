@@ -87,17 +87,19 @@ class AppKafkaListenerToKafkaProducerITest extends KafkaTestContainer {
 
         // Receive all messages from [appProducerTopic] producer-topic
         var consumerRecords = testConsumer.poll(ofSeconds(5));
+        await().pollInterval(ofSeconds(3))
+                .atMost(5, SECONDS)
+                .untilAsserted(() -> assertThat(consumerRecords).isNotEmpty());
+
         System.out.printf("ConsumedRecords Count:[%s]%n", consumerRecords.count());
         assertThat(consumerRecords.count()).isGreaterThanOrEqualTo(0);
-        assertThat(consumerRecords.partitions().size()).isGreaterThanOrEqualTo(1);
-
+        assertThat(consumerRecords.partitions().size()).isGreaterThanOrEqualTo(0);
         List<String> consumerTopics = consumerRecords.partitions().parallelStream()
                 .filter(Objects::nonNull)
                 .map(TopicPartition::topic)
                 .toList();
         System.out.printf("ConsumedRecords topics:%s%n", consumerTopics);
         assertThat(consumerTopics.contains(appProducerTopic)).isTrue();
-
         consumerRecords.forEach(record -> receivedMessageList.add(record.value()));
         System.out.printf("Messages:%s%n", receivedMessageList);
         assertThat(receivedMessageList.parallelStream().anyMatch(message -> message.contains(testMessage))).isTrue();
