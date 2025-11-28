@@ -15,9 +15,13 @@ public class AppService {
     }
 
     public void delegateMessage(String message) {
-        if (Objects.isNull(message) || message.isBlank()) {
-            throw new IllegalArgumentException("Message cannot be null or blank");
+        try {
+            if (Objects.isNull(message) || message.isBlank()) {
+                throw new IllegalArgumentException("Message cannot be null or blank");
+            }
+            appKafkaProducer.sendMessage(message);
+        } catch (IllegalArgumentException e) {
+            appKafkaProducer.sendMessage("Invalid message received: " + e.getMessage());
         }
-        appKafkaProducer.sendMessage(message);
     }
 }
