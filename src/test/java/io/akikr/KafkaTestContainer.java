@@ -2,8 +2,11 @@ package io.akikr;
 
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.producer.ProducerConfig;
 import org.junit.jupiter.api.BeforeAll;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
+import org.springframework.kafka.core.DefaultKafkaProducerFactory;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.KafkaContainer;
@@ -76,5 +79,41 @@ public abstract class KafkaTestContainer {
         Consumer<K, V> consumer = consumerFactory.createConsumer();
         consumer.subscribe(topics);
         return consumer;
+    }
+
+
+    ///
+    /// Creates a test Kafka producer wired to the Testcontainers `KAFKA_CONTAINER`.
+    ///
+    /// Uses the container's bootstrap servers and the supplied serializers and returns a KafkaTemplate (producer)
+    /// configured to produce messages using the given compression type and serializers.
+    ///
+    /// Example:
+    ///
+    /// ```java
+    /// var producer = createTestKafkaProducer("all", "gzip", org.apache.kafka.common.serialization.StringSerializer.class, org.apache.kafka.common.serialization.StringSerializer.class);
+    /// ```
+    ///
+    /// @param ackConfig        The number of acknowledgments the producer requires the leader to have received before considering a request complete (e.g, **0**, **1**, **all**)
+    /// @param compressionType  The compression type to use for the producer (e.g., "**gzip**", "**snappy**", "**none**")
+    /// @param keySerializer    The key serializer class (e.g., **StringSerializer.class**)
+    /// @param valueSerializer  The value serializer class (e.g., **.StringSerializer.class**)
+    ///
+    /// @return A Kafka producer/template of type: `KafkaTemplate<K, V>` configured to use the Testcontainers Kafka bootstrap servers
+    ///
+    public static <K, V> KafkaTemplate<K, V> createTestKafkaProducer(
+            String ackConfig,
+            String compressionType,
+            Class<?> keySerializer,
+            Class<?> valueSerializer) {
+        Map<String, Object> producerProps = Map.of(
+                ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA_CONTAINER.getBootstrapServers(),
+                ProducerConfig.ACKS_CONFIG, ackConfig,
+                ProducerConfig.COMPRESSION_TYPE_CONFIG, compressionType,
+                ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, keySerializer,
+                ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, valueSerializer
+        );
+        DefaultKafkaProducerFactory<K, V> producerFactory = new DefaultKafkaProducerFactory<>(producerProps);
+        return new KafkaTemplate<>(producerFactory);
     }
 }

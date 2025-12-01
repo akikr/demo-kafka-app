@@ -4,12 +4,12 @@ import io.akikr.KafkaTestContainer;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.StringDeserializer;
+import org.apache.kafka.common.serialization.StringSerializer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -36,9 +36,6 @@ class AppKafkaListenerToKafkaProducerITest extends KafkaTestContainer {
 
     private final CopyOnWriteArrayList<String> receivedMessageList = new CopyOnWriteArrayList<>();
 
-    @Autowired
-    private KafkaTemplate<String, String> kafkaTemplate;
-
     ///
     /// These values must be loaded from application TestPropertySource: `application-event-test.properties`
     ///
@@ -47,6 +44,7 @@ class AppKafkaListenerToKafkaProducerITest extends KafkaTestContainer {
     @Value("${app.kafka.producer.topics}")
     private String appProducerTopic;
 
+    private KafkaTemplate<String, String> testKafkaTemplate;
     private Consumer<String, String> testConsumer;
 
     @BeforeEach
@@ -54,6 +52,14 @@ class AppKafkaListenerToKafkaProducerITest extends KafkaTestContainer {
         // Verify Kafka container is running
         assertThat(KAFKA_CONTAINER.isRunning()).isTrue();
         out.println("Setting up Kafka TestContainer and creating a testConsumer for topic:[" + appProducerTopic + "]");
+
+        // Initialize the test producer/kafkaTemplate
+        this.testKafkaTemplate = createTestKafkaProducer(
+                "all",
+                "snappy",
+                StringSerializer.class,
+                StringSerializer.class);
+
         // Initialize test consumer
         this.testConsumer = createTestKafkaConsumer(
                 Collections.singletonList(appProducerTopic),
@@ -84,7 +90,7 @@ class AppKafkaListenerToKafkaProducerITest extends KafkaTestContainer {
 
         // Send message to all [appConsumerTopics] listener-topics
         Arrays.stream(appConsumerTopics).forEach(topic -> {
-            var sendResult = kafkaTemplate.send(topic, testMessage);
+            var sendResult = testKafkaTemplate.send(topic, testMessage);
             await().pollInterval(ofSeconds(3))
                     .atMost(5, SECONDS)
                     .untilAsserted(() -> {
@@ -138,7 +144,7 @@ class AppKafkaListenerToKafkaProducerITest extends KafkaTestContainer {
 
         // Send message to all [appConsumerTopics] listener-topics
         Arrays.stream(appConsumerTopics).forEach(topic -> {
-            var sendResult = kafkaTemplate.send(topic, testMessage);
+            var sendResult = testKafkaTemplate.send(topic, testMessage);
             await().pollInterval(ofSeconds(3))
                     .atMost(5, SECONDS)
                     .untilAsserted(() -> {
