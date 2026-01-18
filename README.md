@@ -8,17 +8,17 @@ This project is a demonstration of a Spring Boot application that uses Apache Ka
 
 To build and run this project, you will need the following:
 
-*   Java 25 or later
-*   Maven 3.6.3 or later
-*   Docker and Docker Compose (for running containerized Kafka broker)
+* Java 25 or later
+* Maven 3.6.3 or later
+* Docker and Docker Compose (for running containerized Kafka broker)
 
 ## Dependencies
 
 This project uses the following dependencies:
 
-*   **Spring Boot:** The core framework for building the application.
-*   **Spring for Apache Kafka:** Provides the necessary components for integrating with Kafka.
-*   **Spring Boot Actuator:** Adds production-ready features like health checks and metrics.
+* **Spring Boot:** The core framework for building the application.
+* **Spring for Apache Kafka:** Provides the necessary components for integrating with Kafka.
+* **Spring Boot Actuator:** Adds production-ready features like health checks and metrics.
 
 For a complete list of dependencies, please see the `pom.xml` file.
 
@@ -35,6 +35,7 @@ To get started with this project, you can clone the repository to your local mac
 sdk env install
 sdk env
 ```
+
 #### Note: To install SDKMAN refer: [sdkman.io](https://sdkman.io/install)
 
 ---
@@ -103,7 +104,10 @@ To produce a message to Kafka topic via `kafka` container running in docker, you
 echo '{"id": 101, "data": "test"}' | docker exec -i kafka kafka-console-producer --broker-list localhost:9092 --topic app-in-topic
 ```
 
-where `app-in-topic` is topic name configured from the value of property: `app.kafka.consumer.topics`
+where:
+
+* `localhost:9092` is the value of property: `spring.kafka.consumer.bootstrap-servers`
+* `app-in-topic` is topic name configured from the value of property: `app.kafka.consumer.topics`
 
 ### Kafka Producer
 
@@ -115,7 +119,12 @@ To see the messages being sent to Kafka topic via `kafka` container running in d
 docker exec -it kafka kafka-console-consumer --bootstrap-server localhost:9092 --topic app-out-topic --from-beginning
 ```
 
-where `app-out-topic` is topic name(s) configured from the value of property: `app.kafka.producer.topics`
+where:
+
+* `localhost:9092` is the value of property: `spring.kafka.producer.bootstrap-servers`
+* `app-out-topic` is topic name(s) configured from the value of property: `app.kafka. producer.topics`
+
+---
 
 ## Contributing
 
