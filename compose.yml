@@ -4,6 +4,12 @@ services:
     container_name: kafka
     ports:
       - "9092:9092"
+    healthcheck:
+      test: [ "CMD", "kafka-broker-api-versions", "--bootstrap-server", "kafka:9092" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: on-failure
     environment:
       # Enables automatic topic creation on the broker.
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
