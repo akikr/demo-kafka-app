@@ -93,75 +93,29 @@ This will create a JAR file in the `target` directory.
 
 ---
 
-## Relevant Code Examples
-
-Here are some code examples from the project to help you understand how it works.
-
 ### Kafka Consumer
 
-The `AppKafkaListener` class is responsible for receiving messages from Kafka. It uses the `@KafkaListener` annotation to listen for messages on the topic specified in the `app.kafka.consumer.topics` property.
+The [AppKafkaListener](src/main/java/io/akikr/event/consumer/AppKafkaListener.java) class is responsible for receiving messages from Kafka. It uses the `@KafkaListener` annotation to listen for messages on the topic specified in the `app.kafka.consumer.topics` property.
 
-```java
-@Component
-public class AppKafkaListener {
+To produce a message to Kafka topic via `kafka` container running in docker, you can use the following `kafka-console-producer` command:
 
-    private static final Logger log = LoggerFactory.getLogger(AppKafkaListener.class);
-
-    @Value("${app.kafka.consumer.topics:app-in-topic}")
-    private String[] appConsumerTopics;
-    @Value("${spring.kafka.consumer.group-id:app-group}")
-    private String appConsumerGroupId;
-
-    private final AppService appService;
-
-    public AppKafkaListener(AppService appService) {
-        this.appService = appService;
-    }
-
-    @KafkaListener(
-            topics = "${app.kafka.consumer.topics:app-in-topic}",
-            groupId = "${spring.kafka.consumer.group-id:app-group}"
-    )
-    public void listen(String message) {
-        log.info("Received Message:[{}] from Kafka topics:{} and groupId:[{}]", message,
-                Arrays.asList(appConsumerTopics), appConsumerGroupId);
-        appService.delegateMessage(message);
-    }
-}
+```shell
+echo '{"id": 101, "data": "test"}' | docker exec -i kafka kafka-console-producer --broker-list localhost:9092 --topic app-in-topic
 ```
+
+where `app-in-topic` is topic name configured from the value of property: `app.kafka.consumer.topics`
 
 ### Kafka Producer
 
-The `AppKafkaProducer` class is responsible for sending messages to Kafka. It uses the `KafkaTemplate` to send messages to the topic specified in the `app.kafka.producer.topics` property.
+The [AppKafkaProducer](src/main/java/io/akikr/event/producer/AppKafkaProducer.java) class is responsible for sending messages to Kafka. It uses the `KafkaTemplate` to send messages to the topic specified in the `app.kafka.producer.topics` property.
 
-```java
-@Component
-public class AppKafkaProducer {
+To see the messages being sent to Kafka topic via `kafka` container running in docker, you can use the following `kafka-console-consumer` command:
 
-    private static final Logger log = LoggerFactory.getLogger(AppKafkaProducer.class);
-    
-    @Value("${app.kafka.producer.topics:app-out-topic}")
-    private String appProducerTopic;
-
-    private final KafkaTemplate<String, String> kafkaTemplate;
-
-    public AppKafkaProducer(KafkaTemplate<String, String> kafkaTemplate) {
-        this.kafkaTemplate = kafkaTemplate;
-    }
-
-    public void sendMessage(String message) {
-        log.info("Sending Message:[{}] to Kafka topic:[{}]", message, appProducerTopic);
-        CompletableFuture<SendResult<String, String>> sendResult = kafkaTemplate.send(appProducerTopic, message);
-        sendResult.whenComplete((result, ex) -> {
-            if (ex == null) {
-                log.info("Sent message=[{}] with offset=[{}]", message, result.getRecordMetadata().offset());
-            } else {
-                log.info("Unable to send message=[{}] due to : {}", message, ex.getMessage());
-            }
-        });
-    }
-}
+```shell
+docker exec -it kafka kafka-console-consumer --bootstrap-server localhost:9092 --topic app-out-topic --from-beginning
 ```
+
+where `app-out-topic` is topic name(s) configured from the value of property: `app.kafka.producer.topics`
 
 ## Contributing
 
