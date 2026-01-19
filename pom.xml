@@ -47,11 +47,11 @@
             <artifactId>opentelemetry-exporter-otlp</artifactId>
         </dependency>
         <!-- OpenTelemetry Logback Appender -->
+        <!-- Source: https://mvnrepository.com/artifact/io.opentelemetry.instrumentation/opentelemetry-logback-appender-1.0 -->
         <dependency>
             <groupId>io.opentelemetry.instrumentation</groupId>
             <artifactId>opentelemetry-logback-appender-1.0</artifactId>
-            <version>2.1.0-alpha</version>
-            <scope>runtime</scope>
+            <version>2.24.0-alpha</version>
         </dependency>
 
         <dependency>
