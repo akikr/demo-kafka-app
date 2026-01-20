@@ -82,6 +82,7 @@ services:
       SPRING_APPLICATION_NAME: kafka-app-prod
       OTEL_EXPORTER_OTLP_ENDPOINT: http://lgtm:4318
       OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+      OTEL_SERVICE_NAME: kafka-app-prod
     ports:
       - "8080:8080"
     healthcheck:
