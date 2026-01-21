@@ -47,6 +47,19 @@ services:
       # Sets the root logger level for Kafka's Log4j logging to reduce noise.
       KAFKA_LOG4J_ROOT_LOGLEVEL: 'ERROR'
 
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    restart: unless-stopped
+    ports:
+      - "8081:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: 'prod-cluster'
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: 'kafka:9092'
+    depends_on:
+      kafka:
+        condition: service_healthy
+
   demo-app:
     build:
       context: .
@@ -71,49 +84,55 @@ services:
         --server.shutdown=immediate
         --spring.profiles.active=kafka,prod
         --spring.threads.virtual.enabled=true
-        --management.otlp.metrics.export.url=http://lgtm:4318/v1/metrics
-        --management.otlp.tracing.endpoint=http://lgtm:4318/v1/traces
-        --management.otlp.logging.endpoint=http://lgtm:4318/v1/logs
+        --management.tracing.sampling.probability=1.0
+        --management.otlp.metrics.export.url=http://otel-collector:4318/v1/metrics
+        --management.otlp.tracing.endpoint=http://otel-collector:4318/v1/traces
+        --management.otlp.logging.endpoint=http://otel-collector:4318/v1/logs
       KAFKA_CONSUMER_TOPICS: 'prod-in-topic'
       KAFKA_CONSUMER_GROUP_ID: 'prod-group'
       KAFKA_CONSUMER_BOOTSTRAP_SERVERS: 'kafka:9092'
       KAFKA_PRODUCER_TOPICS: 'prod-out-topic'
       KAFKA_PRODUCER_BOOTSTRAP_SERVERS: 'kafka:9092'
       SPRING_APPLICATION_NAME: kafka-app-prod
-      OTEL_EXPORTER_OTLP_ENDPOINT: http://lgtm:4318
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
       OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
       OTEL_SERVICE_NAME: kafka-app-prod
     ports:
       - "8080:8080"
+    restart: on-failure
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/app/actuator/health"]
+      test: ["CMD-SHELL", "nc -z localhost 8080 || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 3
     depends_on:
       kafka:
         condition: service_healthy
+      otel-collector:
+        condition: service_started
 
-  kafka-ui:
-    image: provectuslabs/kafka-ui:latest
-    container_name: kafka-ui
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    container_name: otel-collector
+    command: ["--config=/etc/otel-collector-config.yaml"]
     restart: unless-stopped
     ports:
-      - "8081:8080"
-    environment:
-      KAFKA_CLUSTERS_0_NAME: 'prod-cluster'
-      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: 'kafka:9092'
+      - "4317:4317"   # OTLP gRPC receiver
+      - "4318:4318"   # OTLP HTTP receiver
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml
     depends_on:
-      kafka:
-        condition: service_healthy
+      lgtm:
+        condition: service_started
 
   lgtm:
     image: grafana/otel-lgtm:0.13.0
     container_name: lgtm
+    restart: unless-stopped
     ports:
       - '3000:3000'   # Grafana UI
-      - '4317:4317'   # OTLP gRPC
-      - '4318:4318'   # OTLP HTTP
+      - '4317'   # OTLP gRPC
+      - '4318'   # OTLP HTTP
     environment:
       - 'GF_PATHS_DATA=/data/grafana'
       - 'ENABLE_LOGS_ALL=true'

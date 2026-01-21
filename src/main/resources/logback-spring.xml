@@ -3,12 +3,16 @@
     <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
     <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
 
+    <springProperty scope="context" name="APP_NAME" source="spring.application.name"/>
+    <springProperty name="CONSOLE_LOG_CHARSET" source="logging.console.charset"/>
+
     <!-- Async Appender wrapping the console appender -->
     <appender name="ASYNC_CONSOLE" class="ch.qos.logback.classic.AsyncAppender">
         <appender-ref ref="CONSOLE"/>
         <!-- Optional: Drop logs if queue is full to avoid blocking -->
         <discardingThreshold>0</discardingThreshold>
-        <queueSize>5000</queueSize>
+        <neverBlock>true</neverBlock>
+        <queueSize>10000</queueSize>
         <includeCallerData>false</includeCallerData>
     </appender>
 
@@ -17,7 +21,7 @@
     </root>
 
     <springProfile name="prod">
-        <appender name="OTEL" class="io.opentelemetry.instrumentation.logback.appender.v1_0.OpenTelemetryAppender">
+        <appender name="PROD_OTEL" class="io.opentelemetry.instrumentation.logback.appender.v1_0.OpenTelemetryAppender">
             <captureExperimentalAttributes>true</captureExperimentalAttributes>
             <captureCodeAttributes>true</captureCodeAttributes>
             <captureMarkerAttribute>true</captureMarkerAttribute>
@@ -28,15 +32,18 @@
 
         <!-- Async Appender wrapping the OTEL appender -->
         <appender name="ASYNC_OTEL" class="ch.qos.logback.classic.AsyncAppender">
-            <appender-ref ref="OTEL"/>
+            <appender-ref ref="PROD_OTEL"/>
             <!-- Optional: Drop logs if queue is full to avoid blocking -->
             <discardingThreshold>0</discardingThreshold>
-            <queueSize>5000</queueSize>
+            <neverBlock>true</neverBlock>
+            <queueSize>10000</queueSize>
             <includeCallerData>false</includeCallerData>
         </appender>
 
         <root level="INFO" additivity="false">
             <appender-ref ref="ASYNC_OTEL"/>
+            <!-- It's good practice to also log to console for container-level debugging -->
+            <appender-ref ref="ASYNC_CONSOLE"/>
         </root>
     </springProfile>
 </configuration>
