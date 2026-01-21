@@ -64,9 +64,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-#      args:
-#        RUNTIME_JDK_IMAGE: eclipse-temurin:<jdk-version>-alpine
-#        RUNTIME_JDK_VERSION: <jdk-version>
     image: demo-app:v1
     environment:
       JAVA_OPTS: >-
@@ -84,19 +81,16 @@ services:
         --server.shutdown=immediate
         --spring.profiles.active=kafka,prod
         --spring.threads.virtual.enabled=true
-        --management.tracing.sampling.probability=1.0
+        --management.tracing.sampling.probability=0.5
         --management.otlp.metrics.export.url=http://otel-collector:4318/v1/metrics
-        --management.otlp.tracing.endpoint=http://otel-collector:4318/v1/traces
-        --management.otlp.logging.endpoint=http://otel-collector:4318/v1/logs
+        --management.otlp.tracing.endpoint=http://otel-collector:4317/v1/traces
+        --management.otlp.logging.endpoint=http://otel-collector:4317/v1/logs
       KAFKA_CONSUMER_TOPICS: 'prod-in-topic'
       KAFKA_CONSUMER_GROUP_ID: 'prod-group'
       KAFKA_CONSUMER_BOOTSTRAP_SERVERS: 'kafka:9092'
       KAFKA_PRODUCER_TOPICS: 'prod-out-topic'
       KAFKA_PRODUCER_BOOTSTRAP_SERVERS: 'kafka:9092'
-      SPRING_APPLICATION_NAME: kafka-app-prod
-      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
-      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
-      OTEL_SERVICE_NAME: kafka-app-prod
+      SPRING_APPLICATION_NAME: 'kafka-app-prod'
     ports:
       - "8080:8080"
     restart: on-failure
@@ -110,35 +104,77 @@ services:
         condition: service_healthy
       otel-collector:
         condition: service_started
+    volumes:
+      - /tmp/app/dumps:/var/dumps
 
   otel-collector:
     image: otel/opentelemetry-collector-contrib:latest
     container_name: otel-collector
     command: ["--config=/etc/otel-collector-config.yaml"]
-    restart: unless-stopped
+    restart: always
     ports:
-      - "4317:4317"   # OTLP gRPC receiver
-      - "4318:4318"   # OTLP HTTP receiver
+      - "4318:4318"    # OTLP http receiver
+      - "4317:4317"    # OTLP gRPC receiver
+      - "13133:13133"  # health_check extension: http://localhost:13133
+      - "55679:55679"  # zpages extension: http://localhost:55679/debug/servicez
+      - "8889:8889"    # Prometheus exporter metrics
     volumes:
-      - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml
+      - ./otel/otel-collector-config.yaml:/etc/otel-collector-config.yaml
     depends_on:
-      lgtm:
-        condition: service_started
+      - loki
+      - jaeger
+      - zipkin
 
-  lgtm:
-    image: grafana/otel-lgtm:0.13.0
-    container_name: lgtm
-    restart: unless-stopped
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --enable-feature=exemplar-storage
+      - --web.enable-remote-write-receiver
+    restart: always
     ports:
-      - '3000:3000'   # Grafana UI
-      - '4317'   # OTLP gRPC
-      - '4318'   # OTLP HTTP
-    environment:
-      - 'GF_PATHS_DATA=/data/grafana'
-      - 'ENABLE_LOGS_ALL=true'
+      - '9090:9090'   # Prometheus web UI & as grafana datasource
     volumes:
-      - lgtm_data:/data
+      - ./otel/prometheus.yml:/etc/prometheus/prometheus.yml
+    depends_on:
+      - otel-collector
 
-volumes:
-  lgtm_data:
-    driver: local
+  loki:
+    image: grafana/loki:latest
+    container_name: loki
+    command: -config.file=/etc/loki/local-config.yaml
+    restart: always
+    ports:
+      - "3100"  # Loki as grafana datasource
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: jaeger
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    restart: always
+    ports:
+      - "4317"        # OTLP grpc
+      - "16686:16686" # Jaeger UI
+
+  zipkin:
+    image: openzipkin/zipkin:latest
+    container_name: zipkin
+    restart: always
+    ports:
+      - "9411:9411" # Zipkin UI
+
+  grafana:
+    container_name: grafana
+    image: grafana/grafana:latest
+    restart: always
+    ports:
+      - "3000:3000" # Grafana UI
+    volumes:
+      - ./otel/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
+    depends_on:
+      - prometheus
+      - loki
+      - jaeger
+      - zipkin
