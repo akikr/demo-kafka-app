@@ -1,11 +1,11 @@
 package io.akikr.event;
 
+import static java.util.Objects.isNull;
+
 import io.akikr.event.producer.AppKafkaProducer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-
-import static java.util.Objects.isNull;
 
 @Service
 public class AppService {

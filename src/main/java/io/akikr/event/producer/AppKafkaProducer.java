@@ -1,12 +1,12 @@
 package io.akikr.event.producer;
 
+import static java.util.Objects.isNull;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
-
-import static java.util.Objects.isNull;
 
 @Component
 public class AppKafkaProducer {

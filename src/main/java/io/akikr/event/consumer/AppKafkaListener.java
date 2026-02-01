@@ -1,14 +1,12 @@
 package io.akikr.event.consumer;
 
-
 import io.akikr.event.AppService;
+import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
-
-import java.util.Arrays;
 
 @Component
 public class AppKafkaListener {
@@ -17,6 +15,7 @@ public class AppKafkaListener {
 
     @Value("${app.kafka.consumer.topics:app-in-topic}")
     private String[] appConsumerTopics;
+
     @Value("${spring.kafka.consumer.group-id:app-group}")
     private String appConsumerGroupId;
 
@@ -28,11 +27,10 @@ public class AppKafkaListener {
 
     @KafkaListener(
             topics = "${app.kafka.consumer.topics:app-in-topic}",
-            groupId = "${spring.kafka.consumer.group-id:app-group}"
-    )
+            groupId = "${spring.kafka.consumer.group-id:app-group}")
     public void listen(String message) {
-        log.info("Received Message:[{}] from Kafka topics:{} and groupId:[{}]", message,
-                Arrays.asList(appConsumerTopics), appConsumerGroupId);
+        var consumers = Arrays.asList(appConsumerTopics);
+        log.info("Received Message:[{}] from Kafka topics:{} and groupId:[{}]", message, consumers, appConsumerGroupId);
         appService.delegateMessage(message);
     }
 }
