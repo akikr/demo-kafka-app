@@ -11,12 +11,12 @@ import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.KafkaContainer;
+import org.testcontainers.kafka.ConfluentKafkaContainer;
 import org.testcontainers.utility.DockerImageName;
 
 public abstract class KafkaTestContainer {
 
-    protected static final KafkaContainer KAFKA_CONTAINER = new KafkaContainer(
+    protected static final ConfluentKafkaContainer KAFKA_CONTAINER = new ConfluentKafkaContainer(
                     DockerImageName.parse("confluentinc/cp-kafka:7.8.0"))
             // Set the reuse property to true to allow reusing the container across tests
             .withReuse(true);
@@ -45,7 +45,7 @@ public abstract class KafkaTestContainer {
     /// Creates a test Kafka consumer wired to the Testcontainers `KAFKA_CONTAINER`
     ///
     /// Uses the container's bootstrap servers and the supplied deserializers and return a consumer that is already
-    // subscribed to the provided topics.
+    /// subscribed to the provided topics.
     ///
     /// Example:
     /// ```java
@@ -91,19 +91,19 @@ public abstract class KafkaTestContainer {
     ///
     /// ```java
     /// var producer = createTestKafkaProducer("all", "gzip",
-    // org.apache.kafka.common.serialization.StringSerializer.class,
-    // org.apache.kafka.common.serialization.StringSerializer.class);
+    /// org.apache.kafka.common.serialization.StringSerializer.class,
+    /// org.apache.kafka.common.serialization.StringSerializer.class);
     /// ```
     ///
     /// @param ackConfig        The number of acknowledgments the producer requires the leader to have received
-    // before considering a request complete (e.g, **0**, **1**, **all**)
+    /// before considering a request complete (e.g, **0**, **1**, **all**)
     /// @param compressionType  The compression type to use for the producer (e.g., "**gzip**", "**snappy**",
-    // "**none**")
+    /// "**none**")
     /// @param keySerializer    The key serializer class (e.g., **StringSerializer.class**)
     /// @param valueSerializer  The value serializer class (e.g., **.StringSerializer.class**)
     ///
     /// @return A Kafka producer/template of type: `KafkaTemplate<K, V>` configured to use the Testcontainers Kafka
-    // bootstrap servers
+    /// bootstrap servers
     ///
     public static <K, V> KafkaTemplate<K, V> createTestKafkaProducer(
             String ackConfig, String compressionType, Class<?> keySerializer, Class<?> valueSerializer) {
