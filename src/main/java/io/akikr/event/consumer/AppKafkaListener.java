@@ -31,6 +31,8 @@ public class AppKafkaListener {
     public void listen(String message) {
         var consumers = Arrays.asList(appConsumerTopics);
         log.info("Received Message:[{}] from Kafka topics:{} and groupId:[{}]", message, consumers, appConsumerGroupId);
+        int sizeInBytes = message.getBytes().length;
+        log.info("Message size in bytes:[{}]", sizeInBytes);
         appService.delegateMessage(message);
     }
 }

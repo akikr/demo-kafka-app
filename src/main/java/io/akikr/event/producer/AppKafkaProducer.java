@@ -8,6 +8,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
+import java.util.UUID;
+
 @Component
 public class AppKafkaProducer {
 
@@ -23,8 +25,9 @@ public class AppKafkaProducer {
     }
 
     public void sendMessage(String message) {
-        log.info("Sending Message:[{}] to Kafka topic:[{}]", message, appProducerTopic);
-        var sendResult = kafkaTemplate.send(appProducerTopic, message);
+        var key = UUID.randomUUID().toString();
+        log.info("Sending Message:[{}] with key:[{}] to Kafka topic:[{}]", message, key, appProducerTopic);
+        var sendResult = kafkaTemplate.send(appProducerTopic, key, message);
         sendResult.whenComplete((result, ex) -> {
             if (isNull(ex)) {
                 log.info("Sent message=[{}] with offset=[{}]", message, result.getRecordMetadata().offset());
