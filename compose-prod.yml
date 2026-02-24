@@ -123,9 +123,10 @@ services:
       - "55679:55679"  # zpages extension: http://localhost:55679/debug/servicez
       - "8889:8889"    # Prometheus exporter metrics
     volumes:
-      - ./otel/otel-collector-config.yaml:/etc/otel-collector-config.yaml
+      - ./otel/otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
     depends_on:
       - loki
+      - tempo
       - jaeger
       - zipkin
 
@@ -140,7 +141,7 @@ services:
     ports:
       - '9090:9090'   # Prometheus web UI & as grafana datasource
     volumes:
-      - ./otel/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./otel/prometheus.yml:/etc/prometheus/prometheus.yml:ro
     depends_on:
       - otel-collector
 
@@ -151,6 +152,16 @@ services:
     restart: always
     ports:
       - "3100"  # Loki as grafana datasource
+
+  tempo:
+    image: grafana/tempo:latest
+    container_name: tempo
+    command: -config.file=/etc/tempo/tempo.yaml
+    restart: always
+    ports:
+      - "3200"   # Tempo as grafana datasource
+    volumes:
+      - ./otel/tempo-config.yaml:/etc/tempo/tempo.yaml:ro
 
   jaeger:
     image: jaegertracing/all-in-one:latest
@@ -176,9 +187,10 @@ services:
     ports:
       - "3000:3000" # Grafana UI
     volumes:
-      - ./otel/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
+      - ./otel/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
     depends_on:
       - prometheus
       - loki
+      - tempo
       - jaeger
       - zipkin

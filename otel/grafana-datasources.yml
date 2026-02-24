@@ -13,6 +13,7 @@ datasources:
     jsonData:
       httpMethod: GET
       exemplarTraceIdDestinations:
+        - datasourceUid: tempo
         - datasourceUid: jaeger
         - datasourceUid: zipkin
       exemplarTraceIdKey:
@@ -35,6 +36,34 @@ datasources:
         filterByTraceID: true
         filterBySpanID: true
         tags: [ { key: 'service.name', value: 'job' } ]
+  - name: Tempo
+    type: tempo
+    access: proxy
+    orgId: 1
+    url: http://tempo:3200
+    basicAuth: false
+    isDefault: false
+    version: 1
+    editable: true
+    apiVersion: 1
+    uid: tempo
+    jsonData:
+      tracesToLogsV2:
+        datasourceUid: loki
+        spanStartTimeShift: '-1h'
+        spanEndTimeShift: '1h'
+        filterByTraceID: true
+        filterBySpanID: true
+        tags: [ { key: 'service', value: 'job' } ]
+      serviceMap:
+        datasourceUid: prometheus
+        nodeGraph:
+          enabled: true
+        search:
+          filters:
+            - tag: service.name
+              operator: "="
+              scope: resource
   - name: Jaeger
     type: jaeger
     access: proxy

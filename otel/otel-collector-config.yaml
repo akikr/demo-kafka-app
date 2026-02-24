@@ -38,6 +38,11 @@ exporters:
       endpoint: "http://zipkin:9411/api/v2/spans"
       format: proto
 
+    otlp/tempo:
+      endpoint: "http://tempo:4317"
+      tls:
+        insecure: true
+
 extensions:
   health_check:
     endpoint: 0.0.0.0:13133
@@ -54,7 +59,7 @@ service:
       traces:
         receivers: [otlp]
         processors: [memory_limiter, batch]
-        exporters: [debug, otlp/jaeger, zipkin]
+        exporters: [debug, otlp/jaeger, zipkin, otlp/tempo]
       logs:
         receivers: [otlp]
         processors: [memory_limiter, batch]
