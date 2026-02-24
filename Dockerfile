@@ -34,8 +34,8 @@ RUN jlink --add-modules jdk.management,$(cat modules.info) \
 
 # Set the base-image for final stage
 FROM alpine:latest
-# Install curl for health checks
-RUN apk --no-cache add curl
+# Set the maintainer label
+LABEL maintainer='ankit akikr@duck.com'
 # Set JAVA_HOME using application specific JRE from run-stage
 ENV JAVA_HOME=/usr/lib/java/jre
 ENV PATH=$JAVA_HOME/bin:$PATH

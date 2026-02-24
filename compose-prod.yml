@@ -82,7 +82,7 @@ services:
         -XX:+UseStringDeduplication
         --enable-native-access=ALL-UNNAMED
       APP_ARGS: >-
-        --server.shutdown=immediate
+        --server.shutdown=graceful
         --spring.profiles.active=kafka,prod
         --spring.threads.virtual.enabled=true
         --management.tracing.sampling.probability=0.5
