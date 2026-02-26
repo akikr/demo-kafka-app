@@ -117,6 +117,7 @@ Path: `k8s/charts/demo-kafka-app`
 - Service type is `ClusterIP` on port `8080`
 - Ingress is enabled by default
   - `ingress.className: traefik-actuator`
+  - `ingress.annotations.traefik.ingress.kubernetes.io/router.entrypoints: web8080`
   - Host: `demo-kafka-app.local`
   - Path: `/actuator` (rewritten to `/app/actuator` via Traefik middleware)
   - Access port: `8080` via dedicated Traefik service

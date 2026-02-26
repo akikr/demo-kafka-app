@@ -16,7 +16,8 @@ service:
 ingress:
   enabled: true
   className: "traefik-actuator"
-  annotations: {}
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: web8080
   host: demo-kafka-app.local
   path: /actuator
   pathType: Prefix

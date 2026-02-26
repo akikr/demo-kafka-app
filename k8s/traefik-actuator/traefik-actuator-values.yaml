@@ -20,6 +20,10 @@ ports:
   web:
     port: 8000
     expose:
+      default: false
+  web8080:
+    port: 8080
+    expose:
       default: true
     exposedPort: 8080
     hostPort: 8080
