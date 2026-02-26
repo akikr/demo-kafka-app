@@ -264,19 +264,27 @@ kubectl describe ingress demo-kafka-app -n $NS
 kubectl get svc traefik-actuator -n $NS
 ```
 
-Get cluster node IP (use one reachable from host VM):
+Get cluster NODE-IP/INTERNAL-IP (use one reachable from host VM):
 
 ```bash
 kubectl get nodes -o wide
 ```
 
+Output:
+
+```text
+NAME         STATUS   ROLES           AGE   VERSION        INTERNAL-IP     EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION      CONTAINER-RUNTIME
+k8s-master   Ready    control-plane   15h   v1.34.4+k3s1   <NODE-IP>       <none>        Ubuntu 24.04.4 LTS   6.8.0-100-generic   containerd://2.1.5-k3s1
+k8s-worker   Ready    <none>          15h   v1.34.4+k3s1   <NODE-IP>       <none>        Ubuntu 24.04.4 LTS   6.8.0-100-generic   containerd://2.1.5-k3s1
+```
+
 Add host mapping in `/etc/hosts` on host VM:
 
 ```text
-<INTERNAL-IP> demo-kafka-app.local
+<NODE-IP> demo-kafka-app.local
 ```
 
-Then access:
+Then access from inside the cluster VM::
 
 ```bash
 curl http://demo-kafka-app.local:8080/actuator
@@ -285,13 +293,6 @@ curl http://demo-kafka-app.local:8080/actuator/info
 ```
 
 Or without modifying `/etc/hosts`:
-
-```bash
-curl -H "Host: demo-kafka-app.local" http://<INTERNAL-IP>:8080/actuator/health
-curl -H "Host: demo-kafka-app.local" http://<INTERNAL-IP>:8080/actuator/info
-```
-
-Access from inside the cluster VM:
 
 ```bash
 curl -H "Host: demo-kafka-app.local" http://<NODE-IP>:8080/actuator
