@@ -13,9 +13,19 @@ service:
   port: 8080
   targetPort: 8080
 
-networkPolicy:
+ingress:
   enabled: true
-  ingressPort: 8080
+  className: "traefik"
+  annotations: {}
+  host: demo-kafka-app.local
+  path: /actuator
+  pathType: Prefix
+  tls: []
+  rewrite:
+    enabled: true
+    traefikApiVersion: "traefik.io/v1alpha1"
+    from: "^/actuator(.*)"
+    to: "/app/actuator$1"
 
 kafka:
   serviceName: kafka

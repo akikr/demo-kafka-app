@@ -1,0 +1,12 @@
+{{- if and .Values.ingress.enabled .Values.ingress.rewrite.enabled (eq (default "traefik" .Values.ingress.className) "traefik") }}
+apiVersion: {{ .Values.ingress.rewrite.traefikApiVersion }}
+kind: Middleware
+metadata:
+  name: {{ include "demo-kafka-app.fullname" . }}-actuator-rewrite
+  labels:
+    {{- include "demo-kafka-app.labels" . | nindent 4 }}
+spec:
+  replacePathRegex:
+    regex: {{ .Values.ingress.rewrite.from | quote }}
+    replacement: {{ .Values.ingress.rewrite.to | quote }}
+{{- end }}

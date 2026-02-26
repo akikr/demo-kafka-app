@@ -114,7 +114,10 @@ Path: `k8s/charts/demo-kafka-app`
 - Deploys `demo-app:v1` by default (override to `ghcr.io/akikr/demo-kafka-app:v1` for remote registry image pull)
 - Single replica (`replicaCount: 1`)
 - Service type is `ClusterIP` on port `8080`
-- Installs a `NetworkPolicy` (`demo-kafka-app-internal-only`) to allow ingress on `8080` only from pods in the same namespace
+- Ingress is enabled by default
+  - `ingress.className: traefik`
+  - Host: `demo-kafka-app.local`
+  - Path: `/actuator` (rewritten to `/app/actuator` via Traefik middleware)
 - Environment includes multiline `JAVA_OPTS`, multiline `APP_ARGS`, Kafka producer/consumer settings, and app name
 - Liveness endpoint: `/app/actuator/health/liveness`
 - Readiness endpoint: `/app/actuator/health/readiness`
@@ -125,7 +128,8 @@ Path: `k8s/charts/demo-kafka-app`
 
 - `image.repository`, `image.tag`, `image.pullPolicy`
 - `service.type`, `service.port`, `service.targetPort`
-- `networkPolicy.enabled`, `networkPolicy.ingressPort`
+- `ingress.enabled`, `ingress.className`, `ingress.host`, `ingress.path`, `ingress.annotations`, `ingress.tls`
+- `ingress.rewrite.enabled`, `ingress.rewrite.from`, `ingress.rewrite.to`, `ingress.rewrite.traefikApiVersion`
 - `kafka.serviceName`, `kafka.servicePort` (used to compose Kafka bootstrap server URL)
 - `env.*` (JVM/app args, topics, app name)
 - `volume.enabled`, `volume.type`, `volume.hostPath`, `volume.mountPath`
@@ -152,6 +156,12 @@ OR Switch to (`default`) namespace
 
 ```bash
 kubectl config set-context --current --namespace=default
+```
+
+OR use environment variable for namespace
+
+```bash
+export NS=demo
 ```
 
 Install/upgrade Kafka:
@@ -191,9 +201,9 @@ helm upgrade --install demo-kafka-app ./k8s/charts/demo-kafka-app -f ./k8s/chart
 
 ```bash
 kubectl get pods,deploy,svc,configmap,ingress -n demo
-kubectl get networkpolicy -n demo
 kubectl describe ingress kafka-ui -n demo
 kubectl describe ingress otel-lgtm -n demo
+kubectl describe ingress demo-kafka-app -n demo
 ```
 
 Check Kafka broker readiness logs:
@@ -220,20 +230,46 @@ Check Demo Kafka App logs:
 kubectl logs deploy/demo-kafka-app -n demo
 ```
 
-## Access demo-kafka-app actuator from inside cluster VM
+## Access demo-kafka-app actuator from host VM (via Ingress)
 
-Use the helper script:
+Deploy/upgrade demo-kafka-app chart:
 
 ```bash
-./k8s/scripts/access-actuator.sh
-./k8s/scripts/access-actuator.sh -n demo -e /app/actuator/health
-./k8s/scripts/access-actuator.sh -n demo -e /app/actuator/health/readiness
+helm upgrade --install demo-kafka-app ./k8s/charts/demo-kafka-app -f ./k8s/charts/demo-kafka-app/values-prod.yaml -n demo
 ```
 
-Equivalent direct `kubectl` command:
+Verify ingress:
 
 ```bash
-kubectl -n demo run curl --rm -it --restart=Never --image=curlimages/curl:8.6.0 -- curl -sS http://demo-kafka-app:8080/app/actuator/health
+kubectl get ingress demo-kafka-app -n demo
+kubectl describe ingress demo-kafka-app -n demo
+```
+
+Get cluster node IP (use one reachable from host VM):
+
+```bash
+kubectl get nodes -o wide
+```
+
+Add host mapping in `/etc/hosts` on host VM:
+
+```text
+<INTERNAL-IP> demo-kafka-app.local
+```
+
+Then access:
+
+```bash
+curl http://demo-kafka-app.local/actuator
+curl http://demo-kafka-app.local/actuator/health
+curl http://demo-kafka-app.local/actuator/info
+```
+
+Or without modifying `/etc/hosts`:
+
+```bash
+curl -H "Host: demo-kafka-app.local" http://<INTERNAL-IP>/actuator/health
+curl -H "Host: demo-kafka-app.local" http://<INTERNAL-IP>/actuator/info
 ```
 
 ## Rollback
