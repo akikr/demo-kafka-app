@@ -1,4 +1,4 @@
-{{- if and .Values.ingress.enabled .Values.ingress.rewrite.enabled (eq (default "traefik" .Values.ingress.className) "traefik") }}
+{{- if and .Values.ingress.enabled .Values.ingress.rewrite.enabled }}
 apiVersion: {{ .Values.ingress.rewrite.traefikApiVersion }}
 kind: Middleware
 metadata:

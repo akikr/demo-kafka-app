@@ -15,7 +15,7 @@ service:
 
 ingress:
   enabled: true
-  className: "traefik"
+  className: "traefik-actuator"
   annotations: {}
   host: demo-kafka-app.local
   path: /actuator

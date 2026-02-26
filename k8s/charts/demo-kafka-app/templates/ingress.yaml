@@ -5,12 +5,12 @@ metadata:
   name: {{ include "demo-kafka-app.fullname" . }}
   labels:
     {{- include "demo-kafka-app.labels" . | nindent 4 }}
-  {{- if or .Values.ingress.annotations (and .Values.ingress.rewrite.enabled (eq (default "traefik" .Values.ingress.className) "traefik")) }}
+  {{- if or .Values.ingress.annotations .Values.ingress.rewrite.enabled }}
   annotations:
     {{- with .Values.ingress.annotations }}
     {{- toYaml . | nindent 4 }}
     {{- end }}
-    {{- if and .Values.ingress.rewrite.enabled (eq (default "traefik" .Values.ingress.className) "traefik") }}
+    {{- if .Values.ingress.rewrite.enabled }}
     traefik.ingress.kubernetes.io/router.middlewares: "{{ .Release.Namespace }}-{{ include "demo-kafka-app.fullname" . }}-actuator-rewrite@kubernetescrd"
     {{- end }}
   {{- end }}

@@ -12,6 +12,7 @@ This folder contains four Helm charts:
 - Kubernetes cluster
 - Helm 3
 - Ingress controller installed in the cluster (for example traefik/nginx Ingress)
+- Helm access to install a dedicated Traefik ingress controller for actuator on port `8080`
 
 ---
 
@@ -115,9 +116,10 @@ Path: `k8s/charts/demo-kafka-app`
 - Single replica (`replicaCount: 1`)
 - Service type is `ClusterIP` on port `8080`
 - Ingress is enabled by default
-  - `ingress.className: traefik`
+  - `ingress.className: traefik-actuator`
   - Host: `demo-kafka-app.local`
   - Path: `/actuator` (rewritten to `/app/actuator` via Traefik middleware)
+  - Access port: `8080` via dedicated Traefik service
 - Environment includes multiline `JAVA_OPTS`, multiline `APP_ARGS`, Kafka producer/consumer settings, and app name
 - Liveness endpoint: `/app/actuator/health/liveness`
 - Readiness endpoint: `/app/actuator/health/readiness`
@@ -167,67 +169,79 @@ export NS=demo
 Install/upgrade Kafka:
 
 ```bash
-helm upgrade --install kafka ./k8s/charts/kafka --namespace demo
+helm upgrade --install kafka ./k8s/charts/kafka --namespace $NS
 ```
 
 Install/upgrade Kafka UI:
 
 ```bash
-helm upgrade --install kafka-ui ./k8s/charts/kafka-ui --namespace demo
+helm upgrade --install kafka-ui ./k8s/charts/kafka-ui --namespace $NS
 ```
 
 Install/upgrade OTEL LGTM:
 
 ```bash
-helm upgrade --install otel-lgtm ./k8s/charts/otel-lgtm --namespace demo
+helm upgrade --install otel-lgtm ./k8s/charts/otel-lgtm --namespace $NS
 ```
 
 Install/upgrade Demo Kafka App:
 
 ```bash
-helm upgrade --install demo-kafka-app ./k8s/charts/demo-kafka-app -f ./k8s/charts/demo-kafka-app/values-prod.yaml --namespace demo
+helm upgrade --install demo-kafka-app ./k8s/charts/demo-kafka-app -f ./k8s/charts/demo-kafka-app/values-prod.yaml --namespace $NS
+```
+
+Install/upgrade dedicated Traefik ingress controller for actuator on port `8080`:
+
+```bash
+helm repo add traefik https://traefik.github.io/charts
+helm repo update
+helm upgrade --install traefik-actuator traefik/traefik -n $NS -f ./k8s/traefik-actuator/traefik-actuator-values.yaml
 ```
 
 Install all in one go:
 
 ```bash
-helm upgrade --install kafka ./k8s/charts/kafka -n demo
-helm upgrade --install kafka-ui ./k8s/charts/kafka-ui -n demo
-helm upgrade --install otel-lgtm ./k8s/charts/otel-lgtm -n demo
-helm upgrade --install demo-kafka-app ./k8s/charts/demo-kafka-app -f ./k8s/charts/demo-kafka-app/values-prod.yaml -n demo
+helm upgrade --install kafka ./k8s/charts/kafka -n $NS
+helm upgrade --install kafka-ui ./k8s/charts/kafka-ui -n $NS
+helm upgrade --install otel-lgtm ./k8s/charts/otel-lgtm -n $NS
+helm repo add traefik https://traefik.github.io/charts
+helm repo update
+helm upgrade --install traefik-actuator traefik/traefik -n $NS -f ./k8s/traefik-actuator/traefik-actuator-values.yaml
+helm upgrade --install demo-kafka-app ./k8s/charts/demo-kafka-app -f ./k8s/charts/demo-kafka-app/values-prod.yaml -n $NS
 ```
 
 ## Verify deployment
 
 ```bash
-kubectl get pods,deploy,svc,configmap,ingress -n demo
-kubectl describe ingress kafka-ui -n demo
-kubectl describe ingress otel-lgtm -n demo
-kubectl describe ingress demo-kafka-app -n demo
+kubectl get pods,deploy,svc,configmap,ingress -n $NS
+kubectl describe ingress kafka-ui -n $NS
+kubectl describe ingress otel-lgtm -n $NS
+kubectl describe ingress demo-kafka-app -n $NS
+kubectl get svc traefik-actuator -n $NS
 ```
 
 Check Kafka broker readiness logs:
 
 ```bash
-kubectl logs deploy/kafka -n demo
+kubectl logs deploy/kafka -n $NS
 ```
 
 Check Kafka UI logs:
 
 ```bash
-kubectl logs deploy/kafka-ui -n demo
+kubectl logs deploy/kafka-ui -n $NS
 ```
 
 Check OTEL LGTM logs:
 
 ```bash
-kubectl logs deploy/otel-lgtm -n demo
+kubectl logs deploy/otel-lgtm -n $NS
 ```
 
 Check Demo Kafka App logs:
 
 ```bash
-kubectl logs deploy/demo-kafka-app -n demo
+kubectl logs deploy/demo-kafka-app -n $NS
 ```
 
 ## Access demo-kafka-app actuator from host VM (via Ingress)
@@ -235,14 +249,18 @@ kubectl logs deploy/demo-kafka-app -n demo
 Deploy/upgrade demo-kafka-app chart:
 
 ```bash
-helm upgrade --install demo-kafka-app ./k8s/charts/demo-kafka-app -f ./k8s/charts/demo-kafka-app/values-prod.yaml -n demo
+helm repo add traefik https://traefik.github.io/charts
+helm repo update
+helm upgrade --install traefik-actuator traefik/traefik -n $NS -f ./k8s/traefik-actuator/traefik-actuator-values.yaml
+helm upgrade --install demo-kafka-app ./k8s/charts/demo-kafka-app -f ./k8s/charts/demo-kafka-app/values-prod.yaml -n $NS
 ```
 
 Verify ingress:
 
 ```bash
-kubectl get ingress demo-kafka-app -n demo
-kubectl describe ingress demo-kafka-app -n demo
+kubectl get ingress demo-kafka-app -n $NS
+kubectl describe ingress demo-kafka-app -n $NS
+kubectl get svc traefik-actuator -n $NS
 ```
 
 Get cluster node IP (use one reachable from host VM):
@@ -260,16 +278,16 @@ Add host mapping in `/etc/hosts` on host VM:
 Then access:
 
 ```bash
-curl http://demo-kafka-app.local/actuator
-curl http://demo-kafka-app.local/actuator/health
-curl http://demo-kafka-app.local/actuator/info
+curl http://demo-kafka-app.local:8080/actuator
+curl http://demo-kafka-app.local:8080/actuator/health
+curl http://demo-kafka-app.local:8080/actuator/info
 ```
 
 Or without modifying `/etc/hosts`:
 
 ```bash
-curl -H "Host: demo-kafka-app.local" http://<INTERNAL-IP>/actuator/health
-curl -H "Host: demo-kafka-app.local" http://<INTERNAL-IP>/actuator/info
+curl -H "Host: demo-kafka-app.local" http://<INTERNAL-IP>:8080/actuator/health
+curl -H "Host: demo-kafka-app.local" http://<INTERNAL-IP>:8080/actuator/info
 ```
 
 ## Rollback
@@ -277,37 +295,37 @@ curl -H "Host: demo-kafka-app.local" http://<INTERNAL-IP>/actuator/info
 Check revision history:
 
 ```bash
-helm history kafka -n demo
-helm history kafka-ui -n demo
-helm history otel-lgtm -n demo
-helm history demo-kafka-app -n demo
+helm history kafka -n $NS
+helm history kafka-ui -n $NS
+helm history otel-lgtm -n $NS
+helm history demo-kafka-app -n $NS
 ```
 
 Rollback to a previous revision (example: revision `1`):
 
 ```bash
-helm rollback kafka 1 -n demo
-helm rollback kafka-ui 1 -n demo
-helm rollback otel-lgtm 1 -n demo
-helm rollback demo-kafka-app 1 -n demo
+helm rollback kafka 1 -n $NS
+helm rollback kafka-ui 1 -n $NS
+helm rollback otel-lgtm 1 -n $NS
+helm rollback demo-kafka-app 1 -n $NS
 ```
 
 Rollback and wait until resources are ready:
 
 ```bash
-helm rollback kafka 1 -n demo --wait --timeout 5m
-helm rollback kafka-ui 1 -n demo --wait --timeout 5m
-helm rollback otel-lgtm 1 -n demo --wait --timeout 5m
-helm rollback demo-kafka-app 1 -n demo --wait --timeout 5m
+helm rollback kafka 1 -n $NS --wait --timeout 5m
+helm rollback kafka-ui 1 -n $NS --wait --timeout 5m
+helm rollback otel-lgtm 1 -n $NS --wait --timeout 5m
+helm rollback demo-kafka-app 1 -n $NS --wait --timeout 5m
 ```
 
 ## Uninstall
 
 ```bash
-helm uninstall kafka-ui -n demo
-helm uninstall kafka -n demo
-helm uninstall otel-lgtm -n demo
-helm uninstall demo-kafka-app -n demo
+helm uninstall kafka-ui -n $NS
+helm uninstall kafka -n $NS
+helm uninstall otel-lgtm -n $NS
+helm uninstall demo-kafka-app -n $NS
 ```
 
 ---

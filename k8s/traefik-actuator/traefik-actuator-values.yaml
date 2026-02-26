@@ -1,0 +1,24 @@
+deployment:
+  enabled: true
+  kind: Deployment
+  replicas: 1
+
+ingressClass:
+  enabled: true
+  isDefaultClass: false
+  name: traefik-actuator
+
+providers:
+  kubernetesIngress:
+    enabled: true
+    ingressClass: traefik-actuator
+
+service:
+  enabled: true
+  type: LoadBalancer
+
+ports:
+  web:
+    expose:
+      default: true
+    exposedPort: 8080
