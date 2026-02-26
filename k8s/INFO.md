@@ -421,3 +421,5 @@ OR (without modifying `/etc/hosts`) access directly:
 ```shell
 curl -H "Host: otel-lgtm.local"  http://<INTERNAL-IP>
 ```
+
+---
