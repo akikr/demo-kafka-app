@@ -55,7 +55,8 @@ if [[ "$HEAD_BEFORE" != "$HEAD_AFTER" ]]; then
   git checkout HEAD -- k8s
   DEPLOY_REQUIRED=true
 else
-  echo "No commit change detected. Skipping Helm deploy."
+  echo "No commit change detected. Forcing Helm redeploy anyway."
+  DEPLOY_REQUIRED=true
 fi
 
 if [[ "$DEPLOY_REQUIRED" == "true" ]]; then
