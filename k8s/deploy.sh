@@ -4,6 +4,35 @@ set -euo pipefail
 NS="${NS:-demo}"
 REMOTE="${REMOTE:-origin}"
 BRANCH="${BRANCH:-prod}"
+FORCE_REDEPLOY=false
+
+usage() {
+  cat <<USAGE
+Usage: $(basename "$0") [--force|-f]
+
+Options:
+  -f, --force   Force redeploy even when no git commit change is detected.
+  -h, --help    Show this help message.
+USAGE
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -f|--force)
+      FORCE_REDEPLOY=true
+      shift
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "Error: unknown option '$1'" >&2
+      usage
+      exit 1
+      ;;
+  esac
+done
 
 require_cmd() {
   local cmd="$1"
@@ -55,8 +84,12 @@ if [[ "$HEAD_BEFORE" != "$HEAD_AFTER" ]]; then
   git checkout HEAD -- k8s
   DEPLOY_REQUIRED=true
 else
-  echo "No commit change detected. Forcing Helm redeploy anyway."
-  DEPLOY_REQUIRED=true
+  if [[ "$FORCE_REDEPLOY" == "true" ]]; then
+    echo "No commit change detected. --force enabled, proceeding with redeploy."
+    DEPLOY_REQUIRED=true
+  else
+    echo "No commit change detected. Skipping Helm redeploy."
+  fi
 fi
 
 if [[ "$DEPLOY_REQUIRED" == "true" ]]; then
