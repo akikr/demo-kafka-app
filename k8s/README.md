@@ -114,6 +114,7 @@ Path: `k8s/charts/demo-kafka-app`
 - Deploys `demo-app:v1` by default (override to `ghcr.io/akikr/demo-kafka-app:v1` for remote registry image pull)
 - Single replica (`replicaCount: 1`)
 - Service type is `ClusterIP` on port `8080`
+- Installs a `NetworkPolicy` (`demo-kafka-app-internal-only`) to allow ingress on `8080` only from pods in the same namespace
 - Environment includes multiline `JAVA_OPTS`, multiline `APP_ARGS`, Kafka producer/consumer settings, and app name
 - Liveness endpoint: `/app/actuator/health/liveness`
 - Readiness endpoint: `/app/actuator/health/readiness`
@@ -124,6 +125,7 @@ Path: `k8s/charts/demo-kafka-app`
 
 - `image.repository`, `image.tag`, `image.pullPolicy`
 - `service.type`, `service.port`, `service.targetPort`
+- `networkPolicy.enabled`, `networkPolicy.ingressPort`
 - `kafka.serviceName`, `kafka.servicePort` (used to compose Kafka bootstrap server URL)
 - `env.*` (JVM/app args, topics, app name)
 - `volume.enabled`, `volume.type`, `volume.hostPath`, `volume.mountPath`
@@ -189,6 +191,7 @@ helm upgrade --install demo-kafka-app ./k8s/charts/demo-kafka-app -f ./k8s/chart
 
 ```bash
 kubectl get pods,deploy,svc,configmap,ingress -n demo
+kubectl get networkpolicy -n demo
 kubectl describe ingress kafka-ui -n demo
 kubectl describe ingress otel-lgtm -n demo
 ```
@@ -215,6 +218,22 @@ Check Demo Kafka App logs:
 
 ```bash
 kubectl logs deploy/demo-kafka-app -n demo
+```
+
+## Access demo-kafka-app actuator from inside cluster VM
+
+Use the helper script:
+
+```bash
+./k8s/scripts/access-actuator.sh
+./k8s/scripts/access-actuator.sh -n demo -e /app/actuator/health
+./k8s/scripts/access-actuator.sh -n demo -e /app/actuator/health/readiness
+```
+
+Equivalent direct `kubectl` command:
+
+```bash
+kubectl -n demo run curl --rm -it --restart=Never --image=curlimages/curl:8.6.0 -- curl -sS http://demo-kafka-app:8080/app/actuator/health
 ```
 
 ## Rollback
@@ -259,7 +278,7 @@ helm uninstall demo-kafka-app -n demo
 
 ### Access Kafka UI in browser
 
-Here, the default ingress host is `kafka-ui.local` [here](./kafka-ui/values.yaml)
+Here, the default ingress host is `kafka-ui.local` [here](charts/kafka-ui/values.yaml)
 
 ```yaml
 ingress:
@@ -308,7 +327,7 @@ curl --insecure -H "Host: kafka-ui.local" https://<INTERNAL-IP>
 
 ### Access OTEL LGTM (Grafana UI) in browser
 
-Here, the default ingress host is `otel-lgtm.local` [here](./otel-lgtm/values.yaml)
+Here, the default ingress host is `otel-lgtm.local` [here](charts/otel-lgtm/values.yaml)
 
 ```yaml
 ingress:
