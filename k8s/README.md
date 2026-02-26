@@ -196,7 +196,7 @@ Install/upgrade dedicated Traefik ingress controller for actuator on port `8080`
 ```bash
 helm repo add traefik https://traefik.github.io/charts
 helm repo update
-helm upgrade --install traefik-actuator traefik/traefik -n $NS -f ./k8s/traefik-actuator/traefik-actuator-values.yaml
+helm upgrade --install traefik-actuator traefik/traefik -n $NS -f ./k8s/traefik-actuator/traefik-actuator-values.yaml --skip-crds
 ```
 
 Install all in one go:
@@ -207,7 +207,7 @@ helm upgrade --install kafka-ui ./k8s/charts/kafka-ui -n $NS
 helm upgrade --install otel-lgtm ./k8s/charts/otel-lgtm -n $NS
 helm repo add traefik https://traefik.github.io/charts
 helm repo update
-helm upgrade --install traefik-actuator traefik/traefik -n $NS -f ./k8s/traefik-actuator/traefik-actuator-values.yaml
+helm upgrade --install traefik-actuator traefik/traefik -n $NS -f ./k8s/traefik-actuator/traefik-actuator-values.yaml --skip-crds
 helm upgrade --install demo-kafka-app ./k8s/charts/demo-kafka-app -f ./k8s/charts/demo-kafka-app/values-prod.yaml -n $NS
 ```
 
@@ -252,7 +252,7 @@ Deploy/upgrade demo-kafka-app chart:
 ```bash
 helm repo add traefik https://traefik.github.io/charts
 helm repo update
-helm upgrade --install traefik-actuator traefik/traefik -n $NS -f ./k8s/traefik-actuator/traefik-actuator-values.yaml
+helm upgrade --install traefik-actuator traefik/traefik -n $NS -f ./k8s/traefik-actuator/traefik-actuator-values.yaml --skip-crds
 helm upgrade --install demo-kafka-app ./k8s/charts/demo-kafka-app -f ./k8s/charts/demo-kafka-app/values-prod.yaml -n $NS
 ```
 
@@ -289,6 +289,14 @@ Or without modifying `/etc/hosts`:
 ```bash
 curl -H "Host: demo-kafka-app.local" http://<INTERNAL-IP>:8080/actuator/health
 curl -H "Host: demo-kafka-app.local" http://<INTERNAL-IP>:8080/actuator/info
+```
+
+Access from inside the cluster VM:
+
+```bash
+curl -H "Host: demo-kafka-app.local" http://<NODE-IP>:8080/actuator
+curl -H "Host: demo-kafka-app.local" http://<NODE-IP>:8080/actuator/health
+curl -H "Host: demo-kafka-app.local" http://<NODE-IP>:8080/actuator/info
 ```
 
 ## Rollback

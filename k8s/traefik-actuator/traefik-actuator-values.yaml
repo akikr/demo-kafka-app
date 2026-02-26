@@ -22,7 +22,7 @@ ports:
     expose:
       default: false
   web8080:
-    port: 8080
+    port: 8001
     expose:
       default: true
     exposedPort: 8080
