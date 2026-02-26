@@ -1,7 +1,6 @@
 deployment:
   enabled: true
-  kind: Deployment
-  replicas: 1
+  kind: DaemonSet
 
 ingressClass:
   enabled: true
@@ -15,10 +14,12 @@ providers:
 
 service:
   enabled: true
-  type: LoadBalancer
+  type: ClusterIP
 
 ports:
   web:
+    port: 8000
     expose:
       default: true
     exposedPort: 8080
+    hostPort: 8080
