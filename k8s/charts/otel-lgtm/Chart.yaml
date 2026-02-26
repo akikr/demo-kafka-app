@@ -1,7 +1,0 @@
-apiVersion: v2
-name: otel-lgtm
-description: A minimal Helm chart for Grafana OTEL LGTM stack UI and OTLP endpoints
-type: application
-version: 0.1.0
-appVersion: "0.13.0"
-icon: "https://cdn.simpleicons.org/grafana"
