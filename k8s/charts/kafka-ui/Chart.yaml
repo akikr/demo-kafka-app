@@ -1,0 +1,7 @@
+apiVersion: v2
+name: kafka-ui
+description: A minimal Helm chart for Kafka UI (provectuslabs/kafka-ui)
+type: application
+version: 0.1.0
+appVersion: "latest"
+icon: "https://cdn.simpleicons.org/kibana"

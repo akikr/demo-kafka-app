@@ -1,0 +1,69 @@
+replicaCount: 1
+
+nameOverride: ""
+fullnameOverride: "demo-kafka-app"
+
+image:
+  repository: demo-app
+  tag: "v1"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8080
+  targetPort: 8080
+
+kafka:
+  serviceName: kafka
+  servicePort: 9092
+
+env:
+  JAVA_OPTS: |-
+    -XX:+ExitOnOutOfMemoryError
+    -XX:+HeapDumpOnOutOfMemoryError
+    -XX:HeapDumpPath=/var/dumps
+    -XX:MaxRAMPercentage=50
+    -Xss256k
+    -XX:ReservedCodeCacheSize=64m
+    -XX:MaxMetaspaceSize=96m
+    -XX:+UseStringDeduplication
+    -Xmx512m
+    -Xms256m
+    --enable-native-access=ALL-UNNAMED
+  APP_ARGS: |-
+    --server.shutdown=graceful
+    --spring.profiles.active=kafka,prod
+    --spring.threads.virtual.enabled=true
+    --management.tracing.sampling.probability=0.5
+    --management.otlp.metrics.export.url=http://otel-lgtm:4318/v1/metrics
+    --management.otlp.tracing.endpoint=http://otel-lgtm:4317/v1/traces
+    --management.otlp.logging.endpoint=http://otel-lgtm:4317/v1/logs
+  KAFKA_CONSUMER_TOPICS: "prod-in-topic"
+  KAFKA_CONSUMER_GROUP_ID: "prod-group"
+  KAFKA_PRODUCER_TOPICS: "prod-out-topic"
+  SPRING_APPLICATION_NAME: "kafka-app-prod"
+
+volume:
+  enabled: true
+  type: hostPath
+  hostPath: /tmp/app/dumps
+  mountPath: /var/dumps
+
+readiness:
+  path: /app/actuator/health/readiness
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+liveness:
+  path: /app/actuator/health/liveness
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+resources: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}
