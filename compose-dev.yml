@@ -73,8 +73,7 @@ services:
 #        RUNTIME_JDK_VERSION: <jdk-version>
     image: demo-app:v1
     environment:
-      JAVA_OPTS: >-
-        -XX:UseSVE=0
+      JAVA_OPTS: |-
         -XX:+ExitOnOutOfMemoryError
         -XX:+HeapDumpOnOutOfMemoryError
         -XX:HeapDumpPath=/var/dumps
@@ -84,7 +83,7 @@ services:
         -XX:MaxMetaspaceSize=96m
         -XX:+UseStringDeduplication
         --enable-native-access=ALL-UNNAMED
-      APP_ARGS: >-
+      APP_ARGS: |-
         --server.shutdown=immediate
         --spring.profiles.active=kafka,dev
         --spring.threads.virtual.enabled=true
