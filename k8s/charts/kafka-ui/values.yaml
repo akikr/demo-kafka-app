@@ -15,6 +15,13 @@ env:
   KAFKA_CLUSTERS_0_NAME: "prod-cluster"
   KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: "kafka:9092"
   JAVA_OPTS: "-Xmx512m -Xms128m"
+  DYNAMIC_CONFIG_ENABLED: "true"
+  AUTH_TYPE: "LOGIN_FORM"
+
+auth:
+  secretName: kafka-ui-credentials
+  usernameKey: auth-username
+  passwordKey: auth-password
 ingress:
   enabled: true
   className: "traefik"
