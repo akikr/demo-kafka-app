@@ -17,10 +17,38 @@ spec:
         app.kubernetes.io/instance: {{ .Release.Name }}
     spec:
       enableServiceLinks: false
+      initContainers:
+        - name: init-cluster-id
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - /bin/sh
+            - -ec
+          args:
+            - |
+              CLUSTER_ID_FILE="{{ .Values.clusterId.filePath }}"
+              CLUSTER_ID_DIR="$(dirname "$CLUSTER_ID_FILE")"
+              mkdir -p "$CLUSTER_ID_DIR"
+              if [ -s "$CLUSTER_ID_FILE" ]; then
+                echo "Using existing CLUSTER_ID from $CLUSTER_ID_FILE"
+              else
+                /bin/kafka-storage random-uuid > "$CLUSTER_ID_FILE"
+                echo "Generated new CLUSTER_ID in $CLUSTER_ID_FILE"
+              fi
+          volumeMounts:
+            - name: kafka-cluster-id
+              mountPath: {{ .Values.clusterId.filePath | dir | quote }}
       containers:
         - name: kafka
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - /bin/sh
+            - -ec
+          args:
+            - |
+              export CLUSTER_ID="$(cat {{ .Values.clusterId.filePath | quote }})"
+              exec /etc/confluent/docker/run
           ports:
             - name: plaintext
               containerPort: {{ .Values.containerPorts.plaintext }}
@@ -33,6 +61,9 @@ spec:
             - name: {{ $key }}
               value: {{ $value | quote }}
             {{- end }}
+          volumeMounts:
+            - name: kafka-cluster-id
+              mountPath: {{ .Values.clusterId.filePath | dir | quote }}
           readinessProbe:
             exec:
               command:
@@ -55,6 +86,14 @@ spec:
             failureThreshold: {{ .Values.liveness.failureThreshold }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: kafka-cluster-id
+          {{- if .Values.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ if .Values.persistence.existingClaim }}{{ .Values.persistence.existingClaim }}{{ else }}{{ include "kafka.fullname" . }}-cluster-id{{ end }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

@@ -25,6 +25,8 @@ Path: `k8s/charts/kafka`
 - Deploys `confluentinc/cp-kafka:7.8.0`
 - Single replica (`replicaCount: 1`)
 - KRaft mode configuration is set through environment variables
+- Uses an init container to generate `CLUSTER_ID` (if missing) via `kafka-storage random-uuid`
+- Persists `CLUSTER_ID` in a PVC-backed file to keep broker identity stable across restarts
 - Service type is `ClusterIP` on port `9092`
 - No ingress is created for Kafka (not externally exposed)
 
@@ -33,6 +35,8 @@ Path: `k8s/charts/kafka`
 - `image.repository`, `image.tag`, `image.pullPolicy`
 - `service.type`, `service.port`, `service.targetPort`
 - `containerPorts.plaintext`, `containerPorts.internal`, `containerPorts.controller`
+- `clusterId.filePath`
+- `persistence.enabled`, `persistence.existingClaim`, `persistence.storageClass`, `persistence.accessModes`, `persistence.size`
 - `env.*` for Kafka broker settings
 - `resources`, `nodeSelector`, `tolerations`, `affinity`
 
@@ -51,7 +55,7 @@ Path: `k8s/charts/kafka-ui`
   - Path: `/`
 - Creates secret `kafka-ui-credentials` with:
   - `auth-username` = `admin` (base64 encoded)
-  - `auth-password` = `password` (base64 encoded)
+  - `auth-password` = `admin` (base64 encoded)
 
 ### Key values
 
