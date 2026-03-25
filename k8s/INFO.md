@@ -279,7 +279,7 @@ Output:
 ```text
 NAME         STATUS   ROLES           AGE   VERSION        INTERNAL-IP     EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION      CONTAINER-RUNTIME
 k8s-master   Ready    control-plane   15h   v1.34.4+k3s1   <NODE-IP>       <none>        Ubuntu 24.04.4 LTS   6.8.0-100-generic   containerd://2.1.5-k3s1
-k8s-worker   Ready    <none>          15h   v1.34.4+k3s1   <NODE-IP>       <none>        Ubuntu 24.04.4 LTS   6.8.0-100-generic   containerd://2.1.5-k3s1
+k8s-worker   Ready    worker          15h   v1.34.4+k3s1   <NODE-IP>       <none>        Ubuntu 24.04.4 LTS   6.8.0-100-generic   containerd://2.1.5-k3s1
 ```
 
 Add host mapping in `/etc/hosts` on host VM:
