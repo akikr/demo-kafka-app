@@ -74,7 +74,7 @@ services:
 #        RUNTIME_JDK_VERSION: <jdk-version>
     image: demo-app:v1
     environment:
-      JAVA_OPTS: |-
+      JAVA_TOOL_OPTIONS: |-
         -XX:+ExitOnOutOfMemoryError
         -XX:+HeapDumpOnOutOfMemoryError
         -XX:HeapDumpPath=/var/dumps
@@ -84,21 +84,21 @@ services:
         -XX:MaxMetaspaceSize=96m
         -XX:+UseStringDeduplication
         --enable-native-access=ALL-UNNAMED
-      APP_ARGS: |-
-        --server.shutdown=immediate
-        --spring.profiles.active=kafka,dev
-        --spring.threads.virtual.enabled=true
-        --management.otlp.metrics.export.url=http://otel-lgtm:4318/v1/metrics
-        --management.otlp.tracing.transport=http
-        --management.otlp.tracing.endpoint=http://otel-lgtm:4318/v1/traces
-        --management.otlp.logging.transport=http
-        --management.otlp.logging.endpoint=http://otel-lgtm:4318/v1/logs
       KAFKA_CONSUMER_TOPICS: 'dev-in-topic'
       KAFKA_CONSUMER_GROUP_ID: 'dev-group'
       KAFKA_CONSUMER_BOOTSTRAP_SERVERS: 'kafka:9092'
       KAFKA_PRODUCER_TOPICS: 'dev-out-topic'
       KAFKA_PRODUCER_BOOTSTRAP_SERVERS: 'kafka:9092'
       SPRING_APPLICATION_NAME: 'kafka-app-dev'
+    command: |-
+      --server.shutdown=immediate
+      --spring.profiles.active=kafka,dev
+      --spring.threads.virtual.enabled=true
+      --management.otlp.metrics.export.url=http://otel-lgtm:4318/v1/metrics
+      --management.otlp.tracing.transport=http
+      --management.otlp.tracing.endpoint=http://otel-lgtm:4318/v1/traces
+      --management.otlp.logging.transport=http
+      --management.otlp.logging.endpoint=http://otel-lgtm:4318/v1/logs
     ports:
       - "8080:8080"
     restart: on-failure

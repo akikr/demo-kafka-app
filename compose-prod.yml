@@ -81,20 +81,20 @@ services:
         -XX:MaxMetaspaceSize=96m
         -XX:+UseStringDeduplication
         --enable-native-access=ALL-UNNAMED
-      APP_ARGS: |-
-        --server.shutdown=graceful
-        --spring.profiles.active=kafka,prod
-        --spring.threads.virtual.enabled=true
-        --management.tracing.sampling.probability=0.5
-        --management.otlp.metrics.export.url=http://otel-collector:4318/v1/metrics
-        --management.otlp.tracing.endpoint=http://otel-collector:4317/v1/traces
-        --management.otlp.logging.endpoint=http://otel-collector:4317/v1/logs
       KAFKA_CONSUMER_TOPICS: 'prod-in-topic'
       KAFKA_CONSUMER_GROUP_ID: 'prod-group'
       KAFKA_CONSUMER_BOOTSTRAP_SERVERS: 'kafka:9092'
       KAFKA_PRODUCER_TOPICS: 'prod-out-topic'
       KAFKA_PRODUCER_BOOTSTRAP_SERVERS: 'kafka:9092'
       SPRING_APPLICATION_NAME: 'kafka-app-prod'
+    command: |-
+      --server.shutdown=graceful
+      --spring.profiles.active=kafka,prod
+      --spring.threads.virtual.enabled=true
+      --management.tracing.sampling.probability=0.5
+      --management.otlp.metrics.export.url=http://otel-collector:4318/v1/metrics
+      --management.otlp.tracing.endpoint=http://otel-collector:4317/v1/traces
+      --management.otlp.logging.endpoint=http://otel-collector:4317/v1/logs
     ports:
       - "8080:8080"
     restart: on-failure

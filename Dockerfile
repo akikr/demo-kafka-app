@@ -32,29 +32,49 @@ RUN jlink --add-modules jdk.management,$(cat modules.info) \
     --no-man-pages \
     --output /app-jre
 
-# Set the base-image for final stage
-FROM alpine:latest
-# Set the maintainer label
-LABEL maintainer='ankit akikr@duck.com'
-# Set JAVA_HOME using application specific JRE from run-stage
+FROM alpine:latest AS base
+WORKDIR /staging
+# Prepare the staging environment with repositories AND keys
+RUN mkdir -p /staging/etc/apk/keys && \
+    cp -r /etc/apk/repositories /staging/etc/apk/ && \
+    cp /etc/apk/keys/* /staging/etc/apk/keys/
+# Now run apk add with the keys in place
+RUN apk add --initdb --root /staging --no-cache \
+    alpine-baselayout \
+    ca-certificates \
+    zlib \
+    musl \
+    libcrypto3 \
+    libssl3
+# Setup user (Standard Alpine shells use /sbin/nologin for system users)
+RUN echo "appuser:x:1000:1000:appuser:/home/appuser:/sbin/nologin" >> /staging/etc/passwd && \
+    echo "appuser:x:1000:" >> /staging/etc/group && \
+    mkdir -p /staging/home/appuser && \
+    chown -R 1000:1000 /staging/home/appuser
+# Clean up the package manager metadata to save space
+RUN rm -rf /staging/etc/apk /staging/lib/apk /staging/var/cache/apk
+
+# Set the scratch for final stage
+FROM scratch
+WORKDIR /usr/webapp
+# Copy everything from the staging directory to the root of the scratch image
+COPY --from=base /staging /
+# Set JAVA_HOME using application specific JRE from build-stage
 ENV JAVA_HOME=/usr/lib/java/jre
 ENV PATH=$JAVA_HOME/bin:$PATH
 COPY --from=run /app-jre $JAVA_HOME
-# Copy the artifact from run-stage
-RUN mkdir -p /usr/webapp
+# Copy the artifact from build-stage
 COPY --from=run /usr/app/target/*.jar /usr/webapp/webapp-service.jar
-WORKDIR /usr/webapp
 # Define environment variables for java-options and application-arguments
 ENV JAVA_OPTS=""
 ENV APP_ARGS=""
 # Build the application start-up script
 RUN echo 'java ${JAVA_OPTS} -jar webapp-service.jar ${APP_ARGS}' > ./start-app.sh
-# Set a non-root user: Add a system group 'appgroup' and a system user 'appuser' in this group
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
-RUN chown -R appuser:appgroup /usr/webapp
+RUN chown -R 1000:1000 /usr/webapp
 RUN chmod +x /usr/webapp/start-app.sh
-USER appuser
+# Set the non-root user
+USER 1000
 # Expose the application port
 EXPOSE 8080
-# Run using start-up script
-CMD ["sh", "-c", "./start-app.sh"]
+# Run via entrypoint
+ENTRYPOINT ["sh", "-c", "./start-app.sh"]
