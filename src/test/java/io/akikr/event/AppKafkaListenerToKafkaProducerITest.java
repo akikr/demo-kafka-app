@@ -57,7 +57,7 @@ class AppKafkaListenerToKafkaProducerITest extends KafkaTestContainer {
                 createTestKafkaProducer("all", "snappy", StringSerializer.class, StringSerializer.class);
 
         // Initialize test consumer
-        this.testConsumer = createTestKafkaConsumer(
+        this.testConsumer = createTestKafkaConsumerWithOnePartition(
                 Collections.singletonList(appProducerTopic),
                 UUID.randomUUID().toString().concat("test-consumer-group"),
                 "earliest",

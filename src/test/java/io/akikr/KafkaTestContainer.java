@@ -5,6 +5,7 @@ import java.util.Map;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.TopicPartition;
 import org.junit.jupiter.api.BeforeAll;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
@@ -49,7 +50,7 @@ public abstract class KafkaTestContainer {
     ///
     /// Example:
     /// ```java
-    /// var consumer = createTestKafkaConsumer(java.util.Collections.singletonList("topic"),
+    /// var consumer = createTestKafkaConsumerWithOnePartition(java.util.Collections.singletonList("topic"),
     ///                                        "test-group",
     ///                                        "earliest",
     ///                                        org.apache.kafka.common.serialization.StringDeserializer.class,
@@ -63,7 +64,7 @@ public abstract class KafkaTestContainer {
     ///
     /// @return A Kafka consumer of type: `Consumer<K, V>` subscribed to the specified topics
     ///
-    public static <K, V> Consumer<K, V> createTestKafkaConsumer(
+    public static <K, V> Consumer<K, V> createTestKafkaConsumerWithOnePartition(
             Collection<String> topics,
             String groupId,
             String autoOffsetReset,
@@ -77,7 +78,12 @@ public abstract class KafkaTestContainer {
                 ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, valueDeserializer);
         DefaultKafkaConsumerFactory<K, V> consumerFactory = new DefaultKafkaConsumerFactory<>(consumerProps);
         Consumer<K, V> consumer = consumerFactory.createConsumer();
-        consumer.subscribe(topics);
+        var partitions =
+                topics.stream().map(topic -> new TopicPartition(topic, 0)).toList();
+        consumer.assign(partitions);
+        if ("earliest".equals(autoOffsetReset)) {
+            consumer.seekToBeginning(partitions);
+        }
         return consumer;
     }
 
