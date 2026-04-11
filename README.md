@@ -32,8 +32,7 @@ To get started with this project, you can clone the repository to your local mac
 * Initialize your development environment using **SDKMAN** CLI and sdkman env file [`sdkmanrc`](.sdkmanrc)
 
 ```shell
-sdk env install
-sdk env
+sdk env install;sdk env
 ```
 
 #### Note: To install SDKMAN refer: [sdkman.io](https://sdkman.io/install)
@@ -51,8 +50,7 @@ You can also run the Spring Boot application directly from your IDE or by using 
 To run the application using the Maven wrapper, use the following command:
 
 ```shell
-sdk env
-./mvnw spring-boot:run
+sdk env;./mvnw spring-boot:run
 ```
 
 This will use spring-boot docker-compose support to start a Kafka broker along with the application.
@@ -74,9 +72,15 @@ This will build the Docker image for the application and start it along with a K
 To run the tests for the application, you can use the following Maven command:
 
 ```shell
-sdk env
-./mvnw clean test -Dtest="DemoKafkaAppTests"
-./mvnw test
+sdk env;./mvnw clean test
+```
+
+OR
+
+To run a test for a specific class
+
+```shell
+sdk env;./mvnw clean test -Dtest="DemoKafkaAppTests"
 ```
 
 This will execute all the `unit-tests` and `integration-tests` for the application using `test-containers` to spin up a Kafka broker in a docker container for testing purposes.
@@ -86,8 +90,13 @@ This will execute all the `unit-tests` and `integration-tests` for the applicati
 To build the application, you can use the following Maven command:
 
 ```shell
-sdk env
-./mvnw clean package -DskipTests
+sdk env;./mvnw clean package
+```
+
+OR (build skipping the tests)
+
+```shell
+sdk env;./mvnw clean package -DskipTests
 ```
 
 This will create a JAR file in the `target` directory.
