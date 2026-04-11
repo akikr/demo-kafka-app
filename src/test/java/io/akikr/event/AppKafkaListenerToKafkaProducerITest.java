@@ -2,7 +2,6 @@ package io.akikr.event;
 
 import static java.lang.System.out;
 import static java.time.Duration.ofSeconds;
-import static java.util.Objects.nonNull;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
@@ -10,33 +9,30 @@ import static org.awaitility.Awaitility.await;
 import io.akikr.KafkaTestContainer;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
 import java.util.UUID;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.stream.StreamSupport;
 import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.test.context.TestPropertySource;
 
+@TestMethodOrder(MethodOrderer.MethodName.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestPropertySource(properties = {"spring.config.location=classpath:application-event-test.properties"})
 class AppKafkaListenerToKafkaProducerITest extends KafkaTestContainer {
 
-    private final CopyOnWriteArrayList<String> receivedMessageList = new CopyOnWriteArrayList<>();
-
-    ///
-    /// These values must be loaded from application TestPropertySource: `application-event-test.properties`
-    ///
     @Value("${app.kafka.consumer.topics}")
     private String[] appConsumerTopics;
 
@@ -44,34 +40,33 @@ class AppKafkaListenerToKafkaProducerITest extends KafkaTestContainer {
     private String appProducerTopic;
 
     private KafkaTemplate<String, String> testKafkaTemplate;
-    private Consumer<String, String> testConsumer;
+    private Consumer<String, String> testKafkaConsumer;
+    private TopicPartition appProducerPartition;
 
     @BeforeEach
     void setUp() {
-        // Verify Kafka container is running
         assertThat(KAFKA_CONTAINER.isRunning()).isTrue();
         out.println("Setting up Kafka TestContainer and creating a testConsumer for topic:[" + appProducerTopic + "]");
 
-        // Initialize the test producer/kafkaTemplate
         this.testKafkaTemplate =
                 createTestKafkaProducer("all", "snappy", StringSerializer.class, StringSerializer.class);
 
-        // Initialize test consumer
-        this.testConsumer = createTestKafkaConsumerWithOnePartition(
+        this.testKafkaConsumer = createTestKafkaConsumerWithOnePartition(
                 Collections.singletonList(appProducerTopic),
                 UUID.randomUUID().toString().concat("test-consumer-group"),
                 "earliest",
                 StringDeserializer.class,
                 StringDeserializer.class);
+        this.appProducerPartition = new TopicPartition(appProducerTopic, 0);
     }
 
     @AfterEach
     void tearDown() {
-        out.println("Clearing receivedMessageList and closing testConsumer");
-        receivedMessageList.clear();
-        if (nonNull(testConsumer)) {
-            testConsumer.unsubscribe();
-            testConsumer.close();
+        if (testKafkaConsumer != null) {
+            testKafkaConsumer.close();
+        }
+        if (testKafkaTemplate != null) {
+            testKafkaTemplate.destroy();
         }
     }
 
@@ -80,47 +75,31 @@ class AppKafkaListenerToKafkaProducerITest extends KafkaTestContainer {
     @DisplayName(
             "A valid message should be listen by AppKafkaListener#listen from topics:[appConsumerTopics] and processed by App and send by AppKafkaProducer#sendMessage to topic: [appProducerTopic]")
     void shouldListenAndProcessTheMessageSuccessfully() {
-        // Arrange
         var testMessage = "Test Message at " + System.currentTimeMillis();
+        var baselineOffset = testKafkaConsumer
+                .endOffsets(Collections.singleton(appProducerPartition))
+                .get(appProducerPartition);
 
-        // Act and Assert:
-
-        // Send message to all [appConsumerTopics] listener-topics
         Arrays.stream(appConsumerTopics).forEach(topic -> {
-            var sendResult = testKafkaTemplate.send(topic, testMessage);
-            await().pollInterval(ofSeconds(3)).atMost(5, SECONDS).untilAsserted(() -> {
-                assertThat(sendResult).isNotNull();
-                sendResult.whenComplete((result, ex) -> {
-                    assertThat(ex).isNull();
-                    assertThat(result).isNotNull();
-                    assertThat(result.getRecordMetadata()).isNotNull();
-                    assertThat(result.getRecordMetadata().topic()).isEqualTo(topic);
-                    assertThat(result.getRecordMetadata().hasOffset()).isTrue();
-                    assertThat(result.getRecordMetadata().offset()).isGreaterThanOrEqualTo(0);
-                    assertThat(result.getProducerRecord()).isNotNull();
-                    assertThat(result.getProducerRecord().topic()).isEqualTo(topic);
-                    assertThat(result.getProducerRecord().value()).contains(testMessage);
-                });
-            });
+            var sendResult = testKafkaTemplate
+                    .send(topic, 0, UUID.randomUUID().toString(), testMessage)
+                    .join();
+            assertThat(sendResult.getRecordMetadata()).isNotNull();
+            assertThat(sendResult.getRecordMetadata().topic()).isEqualTo(topic);
         });
 
-        // Receive all messages from [appProducerTopic] producer-topic
-        var consumerRecords = testConsumer.poll(ofSeconds(3));
-        await().pollInterval(ofSeconds(3)).atMost(5, SECONDS).untilAsserted(() -> {
-            assertThat(consumerRecords).isNotEmpty();
+        await().pollInterval(ofSeconds(1)).atMost(10, SECONDS).untilAsserted(() -> {
+            var consumerRecords = testKafkaConsumer.poll(ofSeconds(1));
             out.printf("ConsumedRecords Count:[%s]%n", consumerRecords.count());
-            assertThat(consumerRecords.count()).isGreaterThanOrEqualTo(0);
-            assertThat(consumerRecords.partitions().size()).isGreaterThanOrEqualTo(0);
-            List<String> consumerTopics = consumerRecords.partitions().parallelStream()
-                    .filter(Objects::nonNull)
-                    .map(TopicPartition::topic)
+
+            var allMessages = StreamSupport.stream(
+                            consumerRecords.records(appProducerTopic).spliterator(), false)
+                    .filter(record -> record.offset() >= baselineOffset)
+                    .map(ConsumerRecord::value)
                     .toList();
-            out.printf("ConsumedRecords topics:%s%n", consumerTopics);
-            assertThat(consumerTopics.contains(appProducerTopic)).isTrue();
-            consumerRecords.forEach(record -> receivedMessageList.add(record.value()));
-            out.printf("Messages:%s%n", receivedMessageList);
-            assertThat(receivedMessageList.parallelStream().anyMatch(message -> message.contains(testMessage)))
-                    .isTrue();
+            out.printf("Messages:%s%n", allMessages);
+
+            assertThat(allMessages).contains(testMessage);
         });
     }
 
@@ -129,48 +108,32 @@ class AppKafkaListenerToKafkaProducerITest extends KafkaTestContainer {
     @DisplayName(
             "A invalid message should be listen by AppKafkaListener#listen from topics:[appConsumerTopics] and processed by App and send by AppKafkaProducer#sendMessage to topic: [appProducerTopic]")
     void shouldListenAndProcessTheInvalidMessage() {
-        // Arrange
         var testMessage = " ";
-        var invalidMessage = "Invalid message received";
+        var invalidMessage = "Invalid message received: Message cannot be null or blank";
+        var baselineOffset = testKafkaConsumer
+                .endOffsets(Collections.singleton(appProducerPartition))
+                .get(appProducerPartition);
 
-        // Act and Assert:
-
-        // Send message to all [appConsumerTopics] listener-topics
         Arrays.stream(appConsumerTopics).forEach(topic -> {
-            var sendResult = testKafkaTemplate.send(topic, testMessage);
-            await().pollInterval(ofSeconds(3)).atMost(5, SECONDS).untilAsserted(() -> {
-                assertThat(sendResult).isNotNull();
-                sendResult.whenComplete((result, ex) -> {
-                    assertThat(ex).isNull();
-                    assertThat(result).isNotNull();
-                    assertThat(result.getRecordMetadata()).isNotNull();
-                    assertThat(result.getRecordMetadata().topic()).isEqualTo(topic);
-                    assertThat(result.getRecordMetadata().hasOffset()).isTrue();
-                    assertThat(result.getRecordMetadata().offset()).isGreaterThanOrEqualTo(0);
-                    assertThat(result.getProducerRecord()).isNotNull();
-                    assertThat(result.getProducerRecord().topic()).isEqualTo(topic);
-                    assertThat(result.getProducerRecord().value()).contains(testMessage);
-                });
-            });
+            var sendResult = testKafkaTemplate
+                    .send(topic, 0, UUID.randomUUID().toString(), testMessage)
+                    .join();
+            assertThat(sendResult.getRecordMetadata()).isNotNull();
+            assertThat(sendResult.getRecordMetadata().topic()).isEqualTo(topic);
         });
 
-        // Receive all messages from [appProducerTopic] producer-topic
-        var consumerRecords = testConsumer.poll(ofSeconds(3));
-        await().pollInterval(ofSeconds(3)).atMost(5, SECONDS).untilAsserted(() -> {
-            assertThat(consumerRecords).isNotEmpty();
+        await().pollInterval(ofSeconds(1)).atMost(10, SECONDS).untilAsserted(() -> {
+            var consumerRecords = testKafkaConsumer.poll(ofSeconds(1));
             out.printf("ConsumedRecords Count:[%s]%n", consumerRecords.count());
-            assertThat(consumerRecords.count()).isGreaterThanOrEqualTo(0);
-            assertThat(consumerRecords.partitions().size()).isGreaterThanOrEqualTo(0);
-            List<String> consumerTopics = consumerRecords.partitions().parallelStream()
-                    .filter(Objects::nonNull)
-                    .map(TopicPartition::topic)
+
+            var allMessages = StreamSupport.stream(
+                            consumerRecords.records(appProducerTopic).spliterator(), false)
+                    .filter(record -> record.offset() >= baselineOffset)
+                    .map(ConsumerRecord::value)
                     .toList();
-            out.printf("ConsumedRecords topics:%s%n", consumerTopics);
-            assertThat(consumerTopics.contains(appProducerTopic)).isTrue();
-            consumerRecords.forEach(record -> receivedMessageList.add(record.value()));
-            out.printf("Messages:%s%n", receivedMessageList);
-            assertThat(receivedMessageList.parallelStream().anyMatch(message -> message.contains(invalidMessage)))
-                    .isTrue();
+            out.printf("Messages:%s%n", allMessages);
+
+            assertThat(allMessages).contains(invalidMessage);
         });
     }
 }
