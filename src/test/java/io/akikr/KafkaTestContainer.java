@@ -7,20 +7,24 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.TopicPartition;
 import org.junit.jupiter.api.BeforeAll;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.kafka.ConfluentKafkaContainer;
 import org.testcontainers.utility.DockerImageName;
 
-public abstract class KafkaTestContainer {
+@TestConfiguration(proxyBeanMethods = false)
+@Testcontainers(disabledWithoutDocker = true)
+public class KafkaTestContainer {
 
-    protected static final ConfluentKafkaContainer KAFKA_CONTAINER = new ConfluentKafkaContainer(
-                    DockerImageName.parse("confluentinc/cp-kafka:7.8.0"))
-            // Set the reuse property to true to allow reusing the container across tests
-            .withReuse(true);
+    @Container
+    @ServiceConnection
+    public static final ConfluentKafkaContainer KAFKA_CONTAINER =
+            new ConfluentKafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.8.0"));
 
     static {
         KAFKA_CONTAINER.start();
@@ -32,14 +36,6 @@ public abstract class KafkaTestContainer {
     @BeforeAll
     static void setUpKafka() {
         if (KAFKA_CONTAINER.isRunning()) System.out.println("Kafka container running !!");
-    }
-
-    @DynamicPropertySource
-    static void registerKafkaProperties(DynamicPropertyRegistry registry) {
-        // Consumer properties
-        registry.add("spring.kafka.consumer.bootstrap-servers", KAFKA_CONTAINER::getBootstrapServers);
-        // Producer properties
-        registry.add("spring.kafka.producer.bootstrap-servers", KAFKA_CONTAINER::getBootstrapServers);
     }
 
     ///

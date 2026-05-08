@@ -1,17 +1,20 @@
 package io.akikr;
 
+import static io.akikr.KafkaTestContainer.KAFKA_CONTAINER;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.testcontainers.context.ImportTestcontainers;
 import org.springframework.context.ApplicationContext;
-import org.springframework.test.context.TestPropertySource;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@TestPropertySource(properties = {"spring.config.location=classpath:application-test.properties"})
-class DemoKafkaAppTests extends KafkaTestContainer {
+@SpringBootTest(
+        webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
+        properties = {"spring.config.location=classpath:application-test.properties"})
+@ImportTestcontainers(value = {KafkaTestContainer.class})
+class DemoKafkaAppTests {
 
     @Autowired
     private ApplicationContext applicationContext;

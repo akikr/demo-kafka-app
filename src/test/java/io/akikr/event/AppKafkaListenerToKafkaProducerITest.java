@@ -1,5 +1,8 @@
 package io.akikr.event;
 
+import static io.akikr.KafkaTestContainer.KAFKA_CONTAINER;
+import static io.akikr.KafkaTestContainer.createTestKafkaConsumerWithOnePartition;
+import static io.akikr.KafkaTestContainer.createTestKafkaProducer;
 import static java.lang.System.out;
 import static java.time.Duration.ofSeconds;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -25,13 +28,15 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.testcontainers.context.ImportTestcontainers;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.test.context.TestPropertySource;
 
 @TestMethodOrder(MethodOrderer.MethodName.class)
+@ImportTestcontainers(value = {KafkaTestContainer.class})
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestPropertySource(properties = {"spring.config.location=classpath:application-event-test.properties"})
-class AppKafkaListenerToKafkaProducerITest extends KafkaTestContainer {
+class AppKafkaListenerToKafkaProducerITest {
 
     @Value("${app.kafka.consumer.topics}")
     private String[] appConsumerTopics;
